@@ -29,7 +29,7 @@ public interface DeterminantesRepository extends JpaRepository<Determinantes, Lo
 
 
     @Query(""" 
-        SELECT new com.api.determinantes.sociais.Api.DTO.AguaDTO(
+        SELECT new com.arboviroses.conectaDengue.Api.DTO.AguaDTO(
             d.ano, 
             d.ubs, 
             d.bairro, 
@@ -47,7 +47,7 @@ public interface DeterminantesRepository extends JpaRepository<Determinantes, Lo
     List<AguaDTO> findAllAgua();
 
     @Query("""
-        SELECT new com.api.determinantes.sociais.Api.DTO.AguaDTO(
+        SELECT new com.arboviroses.conectaDengue.Api.DTO.AguaDTO(
             d.ano, 
             d.ubs, 
             d.bairro,
@@ -66,7 +66,7 @@ public interface DeterminantesRepository extends JpaRepository<Determinantes, Lo
     List<AguaDTO> findAguaByUbs(String ubs);
 
     @Query("""
-        SELECT new com.api.determinantes.sociais.Api.DTO.AguaDTO(
+        SELECT new com.arboviroses.conectaDengue.Api.DTO.AguaDTO(
             d.ano, 
             'AGREGADO', 
             d.bairro, 
@@ -86,7 +86,7 @@ public interface DeterminantesRepository extends JpaRepository<Determinantes, Lo
     List<AguaDTO> aggregateAguaByBairro(String bairro);
 
     @Query("""
-        SELECT new com.api.determinantes.sociais.Api.DTO.TratamentoDTO(
+        SELECT new com.arboviroses.conectaDengue.Api.DTO.TratamentoDTO(
             d.ubs, 
         CAST(d.tratamentoFiltrada AS long), 
         CAST(d.tratamentoFervida AS long), 
@@ -102,7 +102,7 @@ public interface DeterminantesRepository extends JpaRepository<Determinantes, Lo
     List<TratamentoDTO> findAllTratamento();
 
     @Query("""
-        SELECT new com.api.determinantes.sociais.Api.DTO.TratamentoDTO(
+        SELECT new com.arboviroses.conectaDengue.Api.DTO.TratamentoDTO(
             d.ubs, 
         CAST(d.tratamentoFiltrada AS long), 
         CAST(d.tratamentoFervida AS long), 
@@ -119,7 +119,7 @@ public interface DeterminantesRepository extends JpaRepository<Determinantes, Lo
     List<TratamentoDTO> findTratamentoByUbs(String ubs);
 
     @Query("""
-        SELECT new com.api.determinantes.sociais.Api.DTO.TratamentoDTO(
+        SELECT new com.arboviroses.conectaDengue.Api.DTO.TratamentoDTO(
             'AGREGADO - ' || d.bairro, 
         SUM(d.tratamentoFiltrada), 
         SUM(d.tratamentoFervida), 
@@ -137,7 +137,7 @@ public interface DeterminantesRepository extends JpaRepository<Determinantes, Lo
     List<TratamentoDTO> aggregateTratamentoByBairro(String bairro);
 
     @Query("""
-        SELECT new com.api.determinantes.sociais.Api.DTO.EscoamentoDTO(
+        SELECT new com.arboviroses.conectaDengue.Api.DTO.EscoamentoDTO(
             d.ubs, 
         CAST(d.escoamentoRedeColetora AS long), 
         CAST(d.escoamentoFossaSeptica AS long), 
@@ -154,7 +154,7 @@ public interface DeterminantesRepository extends JpaRepository<Determinantes, Lo
     List<EscoamentoDTO> findAllEscoamento();
 
     @Query("""
-        SELECT new com.api.determinantes.sociais.Api.DTO.EscoamentoDTO(
+        SELECT new com.arboviroses.conectaDengue.Api.DTO.EscoamentoDTO(
             d.ubs, 
         CAST(d.escoamentoRedeColetora AS long), 
         CAST(d.escoamentoFossaSeptica AS long), 
@@ -172,7 +172,7 @@ public interface DeterminantesRepository extends JpaRepository<Determinantes, Lo
     List<EscoamentoDTO> findEscoamentoByUbs(String ubs);
 
     @Query("""
-        SELECT new com.api.determinantes.sociais.Api.DTO.EscoamentoDTO(
+        SELECT new com.arboviroses.conectaDengue.Api.DTO.EscoamentoDTO(
             'AGREGADO - ' || d.bairro, 
         SUM(d.escoamentoRedeColetora), 
         SUM(d.escoamentoFossaSeptica), 
@@ -191,7 +191,7 @@ public interface DeterminantesRepository extends JpaRepository<Determinantes, Lo
     List<EscoamentoDTO> aggregateEscoamentoByBairro(String bairro);
 
     @Query("""
-        SELECT new com.api.determinantes.sociais.Api.DTO.LixoDTO(
+        SELECT new com.arboviroses.conectaDengue.Api.DTO.LixoDTO(
             d.ubs, 
         CAST(d.lixoColetado AS long), 
         CAST(d.lixoQueimadoEnterrado AS long), 
@@ -206,7 +206,7 @@ public interface DeterminantesRepository extends JpaRepository<Determinantes, Lo
     List<LixoDTO> findAllLixo();
 
     @Query("""
-        SELECT new com.api.determinantes.sociais.Api.DTO.LixoDTO(
+        SELECT new com.arboviroses.conectaDengue.Api.DTO.LixoDTO(
             d.ubs, 
         CAST(d.lixoColetado AS long), 
         CAST(d.lixoQueimadoEnterrado AS long), 
@@ -222,7 +222,7 @@ public interface DeterminantesRepository extends JpaRepository<Determinantes, Lo
     List<LixoDTO> findLixoByUbs(String ubs);
 
     @Query("""
-        SELECT new com.api.determinantes.sociais.Api.DTO.LixoDTO(
+        SELECT new com.arboviroses.conectaDengue.Api.DTO.LixoDTO(
             'AGREGADO - ' || d.bairro, 
         SUM(d.lixoColetado), 
         SUM(d.lixoQueimadoEnterrado), 
@@ -239,7 +239,7 @@ public interface DeterminantesRepository extends JpaRepository<Determinantes, Lo
     List<LixoDTO> aggregateLixoByBairro(String bairro);
 
     @Query("""
-        SELECT new com.api.determinantes.sociais.Api.DTO.RendaDTO(
+        SELECT new com.arboviroses.conectaDengue.Api.DTO.RendaDTO(
             d.ubs, 
         CAST(d.rendaUmQuartoSalario AS long), 
         CAST(d.rendaMeioSalario AS long), 
@@ -258,7 +258,7 @@ public interface DeterminantesRepository extends JpaRepository<Determinantes, Lo
     List<RendaDTO> findAllRenda();
 
     @Query("""
-        SELECT new com.api.determinantes.sociais.Api.DTO.RendaDTO(
+        SELECT new com.arboviroses.conectaDengue.Api.DTO.RendaDTO(
             d.ubs, 
         CAST(d.rendaUmQuartoSalario AS long), 
         CAST(d.rendaMeioSalario AS long), 
@@ -278,7 +278,7 @@ public interface DeterminantesRepository extends JpaRepository<Determinantes, Lo
     List<RendaDTO> findRendaByUbs(String ubs);
 
     @Query("""
-        SELECT new com.api.determinantes.sociais.Api.DTO.RendaDTO(
+        SELECT new com.arboviroses.conectaDengue.Api.DTO.RendaDTO(
             'AGREGADO - ' || d.bairro, 
         SUM(d.rendaUmQuartoSalario), 
         SUM(d.rendaMeioSalario), 
@@ -299,7 +299,7 @@ public interface DeterminantesRepository extends JpaRepository<Determinantes, Lo
     List<RendaDTO> aggregateRendaByBairro(String bairro);
 
     @Query("""
-        SELECT new com.api.determinantes.sociais.Api.DTO.EducacaoDTO(
+        SELECT new com.arboviroses.conectaDengue.Api.DTO.EducacaoDTO(
             d.ubs, 
         CAST(d.eduCreche AS long), 
         CAST(d.eduPreEscola AS long), 
@@ -318,7 +318,7 @@ public interface DeterminantesRepository extends JpaRepository<Determinantes, Lo
     List<EducacaoDTO> findAllEducacao();
 
     @Query("""
-        SELECT new com.api.determinantes.sociais.Api.DTO.EducacaoDTO(
+        SELECT new com.arboviroses.conectaDengue.Api.DTO.EducacaoDTO(
             d.ubs, 
         CAST(d.eduCreche AS long), 
         CAST(d.eduPreEscola AS long), 
@@ -338,7 +338,7 @@ public interface DeterminantesRepository extends JpaRepository<Determinantes, Lo
     List<EducacaoDTO> findEducacaoByUbs(String ubs);
 
     @Query("""
-        SELECT new com.api.determinantes.sociais.Api.DTO.EducacaoDTO(
+        SELECT new com.arboviroses.conectaDengue.Api.DTO.EducacaoDTO(
             'AGREGADO - ' || d.bairro, 
         SUM(d.eduCreche), 
         SUM(d.eduPreEscola), 
