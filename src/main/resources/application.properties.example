@@ -1,0 +1,20 @@
+#database config
+spring.jpa.hibernate.ddl-auto=update
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.profiles.active=test
+spring.jpa.open-in-view=true
+
+#fileSize config
+spring.servlet.multipart.max-file-size=50MB
+spring.servlet.multipart.max-request-size=50MB
+
+#Exceptions config
+server.error.include-stacktrace=never
+
+#cors config
+security.cors.allowed-origins=http://localhost:5173
+
+#JWT config
+security.jwt.secret-key=SHA256Token
+security.jwt.expiration-time=620000
+security.jwt.refreshToken.expiration-time=1200000
