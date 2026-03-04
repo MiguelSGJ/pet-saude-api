@@ -1,10 +1,25 @@
 package com.arboviroses.conectaDengue.Api.Controllers;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import lombok.RequiredArgsConstructor;
 import java.util.List;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.arboviroses.conectaDengue.Api.DTO.AguaDTO;
+import com.arboviroses.conectaDengue.Api.DTO.EducacaoDTO;
+import com.arboviroses.conectaDengue.Api.DTO.EscoamentoDTO;
+import com.arboviroses.conectaDengue.Api.DTO.LixoDTO;
+import com.arboviroses.conectaDengue.Api.DTO.RendaDTO;
+import com.arboviroses.conectaDengue.Api.DTO.TratamentoDTO;
+import com.arboviroses.conectaDengue.Domain.Entities.Determinantes;
+import com.arboviroses.conectaDengue.Domain.Services.Determinantes.SocialDeterminantsService;
+
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/determinantes")
