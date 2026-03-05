@@ -1,4 +1,4 @@
-package com.arboviroses.conectaDengue.Domain.Services;
+package com.arboviroses.conectaDengue.Domain.Services.auth;
 
 import java.time.Instant;
 import java.util.Optional;

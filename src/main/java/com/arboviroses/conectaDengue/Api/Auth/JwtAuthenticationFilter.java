@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
-import com.arboviroses.conectaDengue.Domain.Services.JwtService;
+import com.arboviroses.conectaDengue.Domain.Services.auth.JwtService;
 
 import java.io.IOException;
 

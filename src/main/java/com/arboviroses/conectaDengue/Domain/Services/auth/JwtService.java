@@ -1,4 +1,4 @@
-package com.arboviroses.conectaDengue.Domain.Services;
+package com.arboviroses.conectaDengue.Domain.Services.auth;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

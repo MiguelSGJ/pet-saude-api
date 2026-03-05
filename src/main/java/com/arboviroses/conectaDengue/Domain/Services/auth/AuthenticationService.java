@@ -1,4 +1,4 @@
-package com.arboviroses.conectaDengue.Domain.Services;
+package com.arboviroses.conectaDengue.Domain.Services.auth;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;

@@ -19,9 +19,9 @@ import com.arboviroses.conectaDengue.Api.Exceptions.UserAlredyExistsException;
 import com.arboviroses.conectaDengue.Domain.Entities.RefreshToken;
 import com.arboviroses.conectaDengue.Domain.Entities.User;
 import com.arboviroses.conectaDengue.Domain.Repositories.Users.UserRepository;
-import com.arboviroses.conectaDengue.Domain.Services.AuthenticationService;
-import com.arboviroses.conectaDengue.Domain.Services.JwtService;
-import com.arboviroses.conectaDengue.Domain.Services.RefreshTokenService;
+import com.arboviroses.conectaDengue.Domain.Services.auth.AuthenticationService;
+import com.arboviroses.conectaDengue.Domain.Services.auth.JwtService;
+import com.arboviroses.conectaDengue.Domain.Services.auth.RefreshTokenService;
 
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.validation.Valid;
