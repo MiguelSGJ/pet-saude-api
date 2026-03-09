@@ -3,8 +3,10 @@ package com.arboviroses.conectaDengue.Domain.Services.Determinantes;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import com.arboviroses.conectaDengue.Api.Exceptions.ApiExceptionResponse;
 import org.apache.poi.ss.usermodel.Cell;
@@ -268,13 +270,13 @@ public class SocialDeterminantsService {
         return 0;
     }
 
-    public List<String> getAllUbs() {
+    public Set<String> getAllUbs() {
         var determinantes = repository.findAll();
 
         if (determinantes.isEmpty())
-            return new ArrayList<>();
+            return new HashSet<>();
 
-        List<String> ubs = new ArrayList<>();
+        Set<String> ubs = new HashSet<>();
         determinantes.stream().map(Determinantes::getUbs).forEach(ubs::add);
 
         return ubs;
