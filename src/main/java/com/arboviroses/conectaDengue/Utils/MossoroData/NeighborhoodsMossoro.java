@@ -10,8 +10,11 @@ public class NeighborhoodsMossoro
 
     static {
         neighborhoods = new HashSet<>();
-        neighborhoods.add("Abolição");
+
+        neighborhoods.add("ABOLIÇÃO");
         neighborhoods.add("AEROPORTO");
+        neighborhoods.add("ALAGADOS"); // novo
+        neighborhoods.add("ALTO DA BELA VISTA"); // novo
         neighborhoods.add("ALTO DA CONCEIÇÃO");
         neighborhoods.add("ALTO DE SÃO MANOEL");
         neighborhoods.add("ALTO DO SUMARÉ");
@@ -23,12 +26,14 @@ public class NeighborhoodsMossoro
         neighborhoods.add("BOM JARDIM");
         neighborhoods.add("BOM JESUS");
         neighborhoods.add("CENTRO");
+        neighborhoods.add("COSTA E SILVA"); // novo
         neighborhoods.add("DIX-SEPT ROSADO");
         neighborhoods.add("DOM JAIME CÂMARA");
         neighborhoods.add("DOZE ANOS");
         neighborhoods.add("ILHA DE SANTA LUZIA");
         neighborhoods.add("ITAPETINGA");
         neighborhoods.add("LAGOA DO MATO");
+        neighborhoods.add("MONSENHOR ALFREDO SIMONNETTI"); // novo
         neighborhoods.add("MONSENHOR AMÉRICO");
         neighborhoods.add("NOVA BETÂNIA");
         neighborhoods.add("PAREDÕES");

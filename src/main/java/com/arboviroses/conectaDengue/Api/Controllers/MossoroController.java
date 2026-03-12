@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.text.Collator;
+import java.util.Locale;
+
 @RestController
 @RequestMapping("/api/mossoro")
 @RequiredArgsConstructor
@@ -17,8 +20,12 @@ public class MossoroController {
 
     @GetMapping("/neighborhoods")
     public ResponseEntity<?> getMossoroNeighborhoods() {
+        Collator collator = Collator.getInstance(new Locale("pt", "BR"));
         return ResponseEntity.ok(
                 NeighborhoodsMossoro.getNeighborhoods()
+                    .stream()
+                    .sorted(collator)
+                    .toList()
         );
     }
 
