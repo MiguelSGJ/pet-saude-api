@@ -60,4 +60,15 @@ public class AuthenticationService {
 
         return auth;
     }
+
+    public void seed() {
+
+        User user = new User()
+                .setFullName("admin")
+                .setCpf("12345678910")
+                .setPassword(passwordEncoder.encode("admin"));
+
+        System.out.println(user);
+        userRepository.save(user);
+    }
 }

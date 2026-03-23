@@ -87,4 +87,9 @@ public class AuthenticationController {
 
         return ResponseEntity.ok(response);
     }
+    
+    @PostMapping("/seed")
+    public void seed() {
+        authenticationService.seed();
+    }
 }
