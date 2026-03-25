@@ -1,6 +1,10 @@
 package com.arboviroses.conectaDengue.Domain.Services.Notifications;
 
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -87,9 +91,25 @@ public class NotificationService {
 
     private Notification convertDtoToNotification(NotificationDataDTO dto) throws ParseException {
         Notification notification = new Notification();
+
+        Date dataNotificacao = converterStringParaDate(dto.getDtNotific());
+
+        notification.setDataNotification(dataNotificacao);
         notification.setIdNotification(dto.getNuNotific());
         notification.setIdAgravo(dto.getIdAgravo());
-        notification.setIdadePaciente(dto.getIdade());
+
+        if(dto.getIdade() == null || dto.getIdade() == 0) {
+            
+            if(dto.getDtNasc() == null || dto.getDtNasc().isEmpty()) {
+                notification.setIdadePaciente(999); // Idade 999 para indicar que a idade é desconhecida    
+            } else {
+                notification.setIdadePaciente(calcularIdadeNoAno(dto.getDtNasc(), extrairAno(dataNotificacao)));
+            }
+
+        } else {
+            notification.setIdadePaciente(dto.getIdade());
+        }
+
         notification.setClassificacao(dto.getClassiFin());
         notification.setSexo(dto.getCsSexo());
         notification.setIdBairro(dto.getIdBairro());
@@ -97,10 +117,8 @@ public class NotificationService {
         notification.setEvolucao(dto.getEvolucao());
 
         Date dataNascimento = StringToDateCSV.ConvertStringToDate(dto.getDtNasc());
-        Date dataNotification = StringToDateCSV.ConvertStringToDate(dto.getDtNotific());
         
         notification.setDataNascimento(dataNascimento);
-        notification.setDataNotification(dataNotification);
         
         if (notification.getDataNotification() != null) {
             notification.setSemanaEpidemiologica(calculateSemanaEpidemiologica(notification.getDataNotification()));
@@ -108,6 +126,58 @@ public class NotificationService {
         
         return notification;
     }
+
+
+
+    private int calcularIdadeNoAno(String dataNascimento, int anoAlvo) {
+        try {
+            // 1. Define o formato que estamos esperando receber
+            DateTimeFormatter formatador = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            
+            // 2. Converte a String de texto para um objeto de Data (LocalDate) real
+            LocalDate data = LocalDate.parse(dataNascimento, formatador);
+            
+            // 3. Extrai apenas o ano de nascimento (ex: 2003)
+            int anoNascimento = data.getYear();
+            
+            // 4. Retorna a diferença (2020 - 2003 = 17)
+            return anoAlvo - anoNascimento;
+            
+        } catch (DateTimeParseException e) {
+            // Caso a string venha num formato errado (ex: "2003-09-04"), evitamos que o sistema quebre
+            throw new IllegalArgumentException("Formato de data inválido. Por favor, use 'dd/MM/yyyy'.");
+        }
+    }
+
+    public static Date converterStringParaDate(String dataString) {
+        // Validação básica para evitar erros com strings vazias ou nulas
+        if (dataString == null || dataString.trim().isEmpty()) {
+            return null;
+        }
+
+        try {
+            SimpleDateFormat formatador = new SimpleDateFormat("dd/MM/yyyy");
+            
+            // Trava de segurança: impede que datas como 32/01/2020 sejam aceitas
+            formatador.setLenient(false); 
+            
+            return formatador.parse(dataString);
+            
+        } catch (ParseException e) {
+            System.err.println("Erro ao converter a data: " + dataString + ". Formato esperado: dd/MM/yyyy");
+            return null;
+        }
+    }
+
+    public static int extrairAno(Date data) {
+        if (data == null) {
+            return 0; 
+        }
+        Calendar calendario = Calendar.getInstance();
+        calendario.setTime(data);
+        return calendario.get(Calendar.YEAR);
+    }
+
 
     private Integer calculateSemanaEpidemiologica(Date date) {
         Calendar cal = Calendar.getInstance();
