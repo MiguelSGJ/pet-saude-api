@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import com.arboviroses.conectaDengue.Utils.ConvertNameToIdAgravo;
 import com.arboviroses.conectaDengue.Utils.StringToDateCSV;
-import com.arboviroses.conectaDengue.Utils.MossoroData.NeighborhoodsMossoro;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +29,7 @@ import com.arboviroses.conectaDengue.Api.Exceptions.InvalidAgravoException;
 import com.arboviroses.conectaDengue.Domain.Entities.Notification.Notification;
 import com.arboviroses.conectaDengue.Domain.Entities.Notification.NotificationWithError;
 import com.arboviroses.conectaDengue.Domain.Filters.NotificationFilters;
+import com.arboviroses.conectaDengue.Domain.Services.Bairros.BairroService;
 import com.arboviroses.conectaDengue.Domain.Repositories.Notifications.NotificationRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -41,6 +41,7 @@ import lombok.RequiredArgsConstructor;
 public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final NotificationsErrorService notificationsErrorService;
+    private final BairroService bairroService;
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -63,7 +64,7 @@ public class NotificationService {
                         .classificacao(notification.getClassificacao())
                         .sexo(notification.getSexo())
                         .idBairro(notification.getIdBairro())
-                        .nomeBairro(NeighborhoodsMossoro.search(notification.getNomeBairro()))
+                        .nomeBairro(notification.getNomeBairro())
                         .evolucao(notification.getEvolucao())
                         .semanaEpidemiologica(notification.getSemanaEpidemiologica())
                         .iteration(currentIteration)
@@ -113,7 +114,7 @@ public class NotificationService {
         notification.setClassificacao(dto.getClassiFin());
         notification.setSexo(dto.getCsSexo());
         notification.setIdBairro(dto.getIdBairro());
-        notification.setNomeBairro(dto.getNmBairro());
+        notification.setNomeBairro(bairroService.normalizeToMainNeighborhood(dto.getNmBairro()));
         notification.setEvolucao(dto.getEvolucao());
 
         Date dataNascimento = StringToDateCSV.ConvertStringToDate(dto.getDtNasc());
