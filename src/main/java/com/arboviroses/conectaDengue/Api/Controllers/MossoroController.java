@@ -1,7 +1,7 @@
 package com.arboviroses.conectaDengue.Api.Controllers;
 
 import com.arboviroses.conectaDengue.Domain.Services.Determinantes.SocialDeterminantsService;
-import com.arboviroses.conectaDengue.Utils.MossoroData.NeighborhoodsMossoro;
+import com.arboviroses.conectaDengue.Domain.Services.Bairros.BairroService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,12 +17,13 @@ import java.util.Locale;
 public class MossoroController {
 
     private final SocialDeterminantsService socialDeterminantsService;
+    private final BairroService bairroService;
 
     @GetMapping("/neighborhoods")
     public ResponseEntity<?> getMossoroNeighborhoods() {
         Collator collator = Collator.getInstance(new Locale("pt", "BR"));
         return ResponseEntity.ok(
-                NeighborhoodsMossoro.getNeighborhoods()
+                bairroService.listNeighborhoodNames()
                     .stream()
                     .sorted(collator)
                     .toList()
