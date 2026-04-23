@@ -16,14 +16,14 @@ public class XlsxNotificationReader {
      * Mapeamento coluna XLSX -> setter no DTO.
      * Para adicionar coluna: incluir entrada aqui + campo correspondente em NotificationDataDTO.
      */
-    private static final Set<String> DATE_COLUMNS = Set.of("DT_NOTIFIC", "DT_NASC");
+    private static final Set<String> DATE_COLUMNS = Set.of("DT_SIN_PRI", "DT_NASC");
 
     private static final Map<String, BiConsumer<NotificationDataDTO, String>> COLUMN_HANDLERS = new LinkedHashMap<>();
 
     static {
         COLUMN_HANDLERS.put("NU_NOTIFIC", (dto, v) -> dto.setNuNotific(parseLong(v)));
         COLUMN_HANDLERS.put("ID_AGRAVO",  NotificationDataDTO::setIdAgravo);
-        COLUMN_HANDLERS.put("DT_NOTIFIC", NotificationDataDTO::setDtNotific);
+        COLUMN_HANDLERS.put("DT_SIN_PRI", NotificationDataDTO::setDtNotific);
         COLUMN_HANDLERS.put("DT_NASC",    NotificationDataDTO::setDtNasc);
         COLUMN_HANDLERS.put("CLASSI_FIN", NotificationDataDTO::setClassiFin);
         COLUMN_HANDLERS.put("CS_SEXO",    NotificationDataDTO::setCsSexo);
