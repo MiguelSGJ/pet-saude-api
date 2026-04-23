@@ -16,19 +16,21 @@ public class XlsxNotificationReader {
      * Mapeamento coluna XLSX -> setter no DTO.
      * Para adicionar coluna: incluir entrada aqui + campo correspondente em NotificationDataDTO.
      */
+    private static final Set<String> DATE_COLUMNS = Set.of("DT_SIN_PRI", "DT_NASC");
+
     private static final Map<String, BiConsumer<NotificationDataDTO, String>> COLUMN_HANDLERS = new LinkedHashMap<>();
 
     static {
         COLUMN_HANDLERS.put("NU_NOTIFIC", (dto, v) -> dto.setNuNotific(parseLong(v)));
         COLUMN_HANDLERS.put("ID_AGRAVO",  NotificationDataDTO::setIdAgravo);
-        COLUMN_HANDLERS.put("DT_NOTIFIC", NotificationDataDTO::setDtNotific);
+        COLUMN_HANDLERS.put("DT_SIN_PRI", NotificationDataDTO::setDtNotific);
         COLUMN_HANDLERS.put("DT_NASC",    NotificationDataDTO::setDtNasc);
         COLUMN_HANDLERS.put("CLASSI_FIN", NotificationDataDTO::setClassiFin);
         COLUMN_HANDLERS.put("CS_SEXO",    NotificationDataDTO::setCsSexo);
         COLUMN_HANDLERS.put("NM_BAIRRO",  NotificationDataDTO::setNmBairro);
         COLUMN_HANDLERS.put("ID_BAIRRO",  (dto, v) -> dto.setIdBairro(parseIntOrZero(v)));
         COLUMN_HANDLERS.put("EVOLUCAO",   NotificationDataDTO::setEvolucao);
-        COLUMN_HANDLERS.put("NU_IDADE_N", (dto, v) -> dto.setIdade(parseIntOrZero(v)));
+        COLUMN_HANDLERS.put("NU_IDADE_N", (dto, v) -> dto.setIdade(parseIdadeSinan(v)));
     }
 
     public static List<NotificationDataDTO> read(InputStream inputStream) throws IOException {
@@ -50,7 +52,9 @@ public class XlsxNotificationReader {
                 COLUMN_HANDLERS.forEach((colName, handler) -> {
                     Integer idx = columnIndex.get(colName);
                     if (idx == null) return;
-                    String value = getCellValue(row.getCell(idx), evaluator);
+                    String value = DATE_COLUMNS.contains(colName)
+                            ? getDateCellValue(row.getCell(idx), evaluator)
+                            : getCellValue(row.getCell(idx), evaluator);
                     if (!value.isBlank()) {
                         handler.accept(dto, value.trim());
                     }
@@ -74,6 +78,26 @@ public class XlsxNotificationReader {
         return index;
     }
 
+    private static String getDateCellValue(Cell cell, FormulaEvaluator evaluator) {
+        if (cell == null) return "";
+        SimpleDateFormat fmt = new SimpleDateFormat("dd/MM/yyyy");
+        try {
+            return switch (cell.getCellType()) {
+                case NUMERIC -> fmt.format(cell.getDateCellValue()); // funciona com ou sem formatação de data
+                case STRING -> cell.getStringCellValue();            // já vem como string dd/MM/yyyy
+                case FORMULA -> {
+                    CellValue cv = evaluator.evaluate(cell);
+                    yield cv.getCellType() == CellType.NUMERIC
+                            ? fmt.format(DateUtil.getJavaDate(cv.getNumberValue()))
+                            : cv.getStringValue();
+                }
+                default -> "";
+            };
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     private static String getCellValue(Cell cell, FormulaEvaluator evaluator) {
         if (cell == null) return "";
         return switch (cell.getCellType()) {
@@ -95,6 +119,17 @@ public class XlsxNotificationReader {
             }
             default -> "";
         };
+    }
+
+    private static int parseIdadeSinan(String v) {
+        try {
+            int raw = Integer.parseInt(v.split("\\.")[0]);
+            int unit = raw / 1000;  // 1=anos, 2=meses, 3=dias, 4=horas
+            int value = raw % 1000;
+            return unit == 1 ? value : 0;
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     private static Long parseLong(String v) {
