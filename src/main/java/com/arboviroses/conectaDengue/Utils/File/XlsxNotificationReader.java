@@ -1,0 +1,115 @@
+package com.arboviroses.conectaDengue.Utils.File;
+
+import com.arboviroses.conectaDengue.Api.DTO.request.NotificationDataDTO;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.function.BiConsumer;
+
+public class XlsxNotificationReader {
+
+    /**
+     * Mapeamento coluna XLSX -> setter no DTO.
+     * Para adicionar coluna: incluir entrada aqui + campo correspondente em NotificationDataDTO.
+     */
+    private static final Map<String, BiConsumer<NotificationDataDTO, String>> COLUMN_HANDLERS = new LinkedHashMap<>();
+
+    static {
+        COLUMN_HANDLERS.put("NU_NOTIFIC", (dto, v) -> dto.setNuNotific(parseLong(v)));
+        COLUMN_HANDLERS.put("ID_AGRAVO",  NotificationDataDTO::setIdAgravo);
+        COLUMN_HANDLERS.put("DT_NOTIFIC", NotificationDataDTO::setDtNotific);
+        COLUMN_HANDLERS.put("DT_NASC",    NotificationDataDTO::setDtNasc);
+        COLUMN_HANDLERS.put("CLASSI_FIN", NotificationDataDTO::setClassiFin);
+        COLUMN_HANDLERS.put("CS_SEXO",    NotificationDataDTO::setCsSexo);
+        COLUMN_HANDLERS.put("NM_BAIRRO",  NotificationDataDTO::setNmBairro);
+        COLUMN_HANDLERS.put("ID_BAIRRO",  (dto, v) -> dto.setIdBairro(parseIntOrZero(v)));
+        COLUMN_HANDLERS.put("EVOLUCAO",   NotificationDataDTO::setEvolucao);
+        COLUMN_HANDLERS.put("NU_IDADE_N", (dto, v) -> dto.setIdade(parseIntOrZero(v)));
+    }
+
+    public static List<NotificationDataDTO> read(InputStream inputStream) throws IOException {
+        List<NotificationDataDTO> result = new ArrayList<>();
+
+        try (Workbook workbook = new XSSFWorkbook(inputStream)) {
+            Sheet sheet = workbook.getSheetAt(0);
+            FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
+            Iterator<Row> rows = sheet.iterator();
+
+            if (!rows.hasNext()) return result;
+
+            Map<String, Integer> columnIndex = buildColumnIndex(rows.next());
+
+            while (rows.hasNext()) {
+                Row row = rows.next();
+                NotificationDataDTO dto = new NotificationDataDTO();
+
+                COLUMN_HANDLERS.forEach((colName, handler) -> {
+                    Integer idx = columnIndex.get(colName);
+                    if (idx == null) return;
+                    String value = getCellValue(row.getCell(idx), evaluator);
+                    if (!value.isBlank()) {
+                        handler.accept(dto, value.trim());
+                    }
+                });
+
+                result.add(dto);
+            }
+        }
+
+        return result;
+    }
+
+    private static Map<String, Integer> buildColumnIndex(Row headerRow) {
+        Map<String, Integer> index = new HashMap<>();
+        for (Cell cell : headerRow) {
+            String name = cell.getStringCellValue().trim();
+            if (COLUMN_HANDLERS.containsKey(name)) {
+                index.put(name, cell.getColumnIndex());
+            }
+        }
+        return index;
+    }
+
+    private static String getCellValue(Cell cell, FormulaEvaluator evaluator) {
+        if (cell == null) return "";
+        return switch (cell.getCellType()) {
+            case STRING -> cell.getStringCellValue();
+            case NUMERIC -> DateUtil.isCellDateFormatted(cell)
+                    ? new SimpleDateFormat("dd/MM/yyyy").format(cell.getDateCellValue())
+                    : String.valueOf(cell.getNumericCellValue());
+            case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
+            case FORMULA -> {
+                CellValue cv = evaluator.evaluate(cell);
+                yield switch (cv.getCellType()) {
+                    case STRING -> cv.getStringValue();
+                    case NUMERIC -> DateUtil.isCellDateFormatted(cell)
+                            ? new SimpleDateFormat("dd/MM/yyyy").format(cell.getDateCellValue())
+                            : String.valueOf(cv.getNumberValue());
+                    case BOOLEAN -> String.valueOf(cv.getBooleanValue());
+                    default -> "";
+                };
+            }
+            default -> "";
+        };
+    }
+
+    private static Long parseLong(String v) {
+        try {
+            return Long.parseLong(v.split("\\.")[0]);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static int parseIntOrZero(String v) {
+        try {
+            return Integer.parseInt(v.split("\\.")[0]);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+}

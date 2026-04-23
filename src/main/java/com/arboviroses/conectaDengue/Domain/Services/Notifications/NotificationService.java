@@ -31,10 +31,12 @@ import com.arboviroses.conectaDengue.Domain.Entities.Notification.NotificationWi
 import com.arboviroses.conectaDengue.Domain.Filters.NotificationFilters;
 import com.arboviroses.conectaDengue.Domain.Services.Bairros.BairroService;
 import com.arboviroses.conectaDengue.Domain.Repositories.Notifications.NotificationRepository;
+import com.arboviroses.conectaDengue.Utils.File.XlsxNotificationReader;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -44,6 +46,11 @@ public class NotificationService {
     private final BairroService bairroService;
     @PersistenceContext
     private EntityManager entityManager;
+
+    public SaveCsvResponseDTO saveNotificationsFromXlsx(MultipartFile file) throws Exception {
+        List<NotificationDataDTO> dtos = XlsxNotificationReader.read(file.getInputStream());
+        return saveNotificationsFromBatch(new NotificationBatchDTO(dtos));
+    }
 
     public SaveCsvResponseDTO saveNotificationsFromBatch(NotificationBatchDTO notificationBatchDTO) {
         List<Notification> notifications = new ArrayList<>();
