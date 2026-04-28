@@ -9,4 +9,9 @@ import java.util.List;
 public interface NotificationRepositoryCustom {
     List<AgravoCountBySemanaEpidemiologica> buscarContagemPorSemanaEpidemiologica(Specification<Notification> spec);
     List<BairroCountDTO> buscarContagemPorBairro(Specification<Notification> spec);
+    Integer buscarMaiorSemanaEpidemiologica(String agravoId, Integer year, String bairro);
+    List<NeighborhoodWeeklyCountRow> buscarContagemSemanalPorBairro(String agravoId, Integer year, String bairro, Integer semanaFinal);
+
+    record NeighborhoodWeeklyCountRow(String bairro, Integer semana, Long total) {
+    }
 }

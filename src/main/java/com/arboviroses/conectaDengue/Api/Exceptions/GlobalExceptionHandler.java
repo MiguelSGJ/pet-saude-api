@@ -50,6 +50,13 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(exceptionResponse, new HttpHeaders(), exceptionResponse.getHttpStatus());
     }
 
+    @ExceptionHandler(InvalidNeighborhoodWeeklyReportException.class)
+    public ResponseEntity<Object> HandleExceptions(InvalidNeighborhoodWeeklyReportException exception, WebRequest request)
+    {
+        ApiExceptionResponse exceptionResponse = new ApiExceptionResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
+        return new ResponseEntity<>(exceptionResponse, new HttpHeaders(), exceptionResponse.getHttpStatus());
+    }
+
     @ExceptionHandler(ParseException.class)
     public ResponseEntity<Object> HandleExceptions(ParseException exception, WebRequest request)
     {
