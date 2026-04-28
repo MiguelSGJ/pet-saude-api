@@ -2,14 +2,20 @@ package com.arboviroses.conectaDengue.Api.Controllers;
 
 import java.util.List;
 import java.util.Map;
+
+import com.arboviroses.conectaDengue.Domain.Services.reports.NeighborhoodWeeklyPdfReportService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.arboviroses.conectaDengue.Api.DTO.request.NeighborhoodWeeklyPdfReportRequest;
 import com.arboviroses.conectaDengue.Api.DTO.request.NotificationBatchDTO;
 import com.arboviroses.conectaDengue.Api.DTO.response.AgravoCountByAgeRange;
 import com.arboviroses.conectaDengue.Api.DTO.response.AgravoCountByEpidemiologicalSemanaEpidemiologicaResponse;
@@ -33,6 +39,7 @@ public class NotificationController
 {
     private final NotificationService notificationService;
     private final NotificationsErrorService notificationsErrorService;
+    private final NeighborhoodWeeklyPdfReportService neighborhoodWeeklyPdfReportService;
 
     @PostMapping("/saveNotifications")
     public ResponseEntity<SuccessResponseDTO<SaveCsvResponseDTO>> saveNotifications(@RequestBody NotificationBatchDTO notificationsData) throws Exception {
@@ -92,5 +99,24 @@ public class NotificationController
     @GetMapping("/notifications/count/evolucao")
     public ResponseEntity<SuccessResponseDTO<Long>> getEvolucao(HttpServletRequest request) throws Exception {
         return ResponseEntity.ok().body(SuccessResponseDTO.setResponse(notificationService.countByEvolucao(request), null));
+    }
+
+    @GetMapping(value = "/notifications/report/neighborhood/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> generateNeighborhoodWeeklyPdfReport(
+        @RequestParam("semanaFinal") Integer semanaFinal,
+        @RequestParam(required = false) Integer year,
+        @RequestParam(required = false) String agravo,
+        @RequestParam(required = false) String bairro
+    ) throws InvalidAgravoException {
+        NeighborhoodWeeklyPdfReportRequest reportRequest =
+            new NeighborhoodWeeklyPdfReportRequest(semanaFinal, year, agravo, bairro);
+
+        byte[] pdf = neighborhoodWeeklyPdfReportService.generateReport(reportRequest);
+
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=relatorio-bairros-semanas-1-a-" + semanaFinal + ".pdf")
+            .contentType(MediaType.APPLICATION_PDF)
+            .body(pdf);
     }
 }

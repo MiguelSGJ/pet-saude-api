@@ -8,11 +8,14 @@ import com.arboviroses.conectaDengue.Domain.Entities.Notification.Notification;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import java.util.List;
+import java.util.ArrayList;
 
 public class NotificationRepositoryCustomImpl implements NotificationRepositoryCustom {
 
@@ -87,6 +90,71 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
         query.orderBy(cb.desc(total));
 
         return entityManager.createQuery(query).getResultList();
+    }
+
+    @Override
+    public Integer buscarMaiorSemanaEpidemiologica(String agravoId, Integer year, String bairro) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Integer> query = cb.createQuery(Integer.class);
+        Root<Notification> root = query.from(Notification.class);
+
+        query.select(cb.coalesce(cb.max(root.get("semanaEpidemiologica")), 0));
+        query.where(buildReportPredicates(cb, root, agravoId, year, bairro).toArray(new Predicate[0]));
+
+        Integer result = entityManager.createQuery(query).getSingleResult();
+        return result == null ? 0 : result;
+    }
+
+    @Override
+    public List<NeighborhoodWeeklyCountRow> buscarContagemSemanalPorBairro(String agravoId, Integer year, String bairro, Integer semanaFinal) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<NeighborhoodWeeklyCountRow> query = cb.createQuery(NeighborhoodWeeklyCountRow.class);
+        Root<Notification> root = query.from(Notification.class);
+
+        List<Predicate> predicates = buildReportPredicates(cb, root, agravoId, year, bairro);
+        predicates.add(cb.lessThanOrEqualTo(root.get("semanaEpidemiologica"), semanaFinal));
+
+        query.where(predicates.toArray(new Predicate[0]));
+        query.groupBy(root.get("nomeBairro"), root.get("semanaEpidemiologica"));
+        query.orderBy(cb.asc(root.get("nomeBairro")), cb.asc(root.get("semanaEpidemiologica")));
+
+        query.select(cb.construct(
+            NeighborhoodWeeklyCountRow.class,
+            root.get("nomeBairro"),
+            root.get("semanaEpidemiologica"),
+            cb.count(root)
+        ));
+
+        TypedQuery<NeighborhoodWeeklyCountRow> typedQuery = entityManager.createQuery(query);
+        return typedQuery.getResultList();
+    }
+
+    private List<Predicate> buildReportPredicates(
+        CriteriaBuilder cb,
+        Root<Notification> root,
+        String agravoId,
+        Integer year,
+        String bairro
+    ) {
+        List<Predicate> predicates = new ArrayList<>();
+        predicates.add(cb.isNotNull(root.get("nomeBairro")));
+
+        if (agravoId != null && !agravoId.isBlank()) {
+            predicates.add(cb.equal(root.get("idAgravo"), agravoId));
+        }
+
+        if (year != null) {
+            predicates.add(cb.equal(
+                cb.function("date_part", Integer.class, cb.literal("year"), root.get("dataNotification")),
+                year
+            ));
+        }
+
+        if (bairro != null && !bairro.isBlank()) {
+            predicates.add(cb.equal(root.get("nomeBairro"), bairro));
+        }
+
+        return predicates;
     }
 
 }
