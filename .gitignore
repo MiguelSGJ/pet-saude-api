@@ -13,6 +13,9 @@ target/
 .settings
 .springBeans
 .sts4-cache
+.claude
+2_DENGUE 2017 A 2022 exel - UFERSA.xlsx
+2_DENGUE 2020 A 2022 exel - UFERSA.csv
 
 ### IntelliJ IDEA ###
 .idea
