@@ -106,12 +106,15 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
     }
 
     @Override
-    public List<NeighborhoodWeeklyCountRow> buscarContagemSemanalPorBairro(String agravoId, Integer year, String bairro, Integer semanaFinal) {
+    public List<NeighborhoodWeeklyCountRow> buscarContagemSemanalPorBairro(String agravoId, Integer year, String bairro, Integer semanaInicial, Integer semanaFinal) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<NeighborhoodWeeklyCountRow> query = cb.createQuery(NeighborhoodWeeklyCountRow.class);
         Root<Notification> root = query.from(Notification.class);
 
         List<Predicate> predicates = buildReportPredicates(cb, root, agravoId, year, bairro);
+        if (semanaInicial != null) {
+            predicates.add(cb.greaterThanOrEqualTo(root.get("semanaEpidemiologica"), semanaInicial));
+        }
         predicates.add(cb.lessThanOrEqualTo(root.get("semanaEpidemiologica"), semanaFinal));
 
         query.where(predicates.toArray(new Predicate[0]));

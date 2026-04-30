@@ -41,6 +41,12 @@ public class NeighborhoodWeeklyPdfReportService {
             throw new InvalidNeighborhoodWeeklyReportException("Informe uma semana epidemiológica final maior ou igual a 1.");
         }
 
+        int semanaInicial = reportRequest.getSemanaInicial() != null ? reportRequest.getSemanaInicial() : 1;
+
+        if (semanaInicial > reportRequest.getSemanaFinal()) {
+            throw new InvalidNeighborhoodWeeklyReportException("A semana inicial deve ser menor ou igual à semana final.");
+        }
+
         ReportFilters filters = extractReportFilters(reportRequest);
         int maxAvailableWeek = notificationRepository.buscarMaiorSemanaEpidemiologica(
             filters.agravoId(),
@@ -59,8 +65,8 @@ public class NeighborhoodWeeklyPdfReportService {
             );
         }
 
-        List<NeighborhoodWeeklyRow> reportRows = buildNeighborhoodWeeklyRows(filters, reportRequest.getSemanaFinal());
-        return createNeighborhoodWeeklyPdf(reportRows, reportRequest.getSemanaFinal(), filters);
+        List<NeighborhoodWeeklyRow> reportRows = buildNeighborhoodWeeklyRows(filters, semanaInicial, reportRequest.getSemanaFinal());
+        return createNeighborhoodWeeklyPdf(reportRows, semanaInicial, reportRequest.getSemanaFinal(), filters);
     }
 
     private ReportFilters extractReportFilters(NeighborhoodWeeklyPdfReportRequest reportRequest) throws InvalidAgravoException {
@@ -73,19 +79,20 @@ public class NeighborhoodWeeklyPdfReportService {
         return new ReportFilters(agravoId, reportRequest.getYear(), reportRequest.getBairro());
     }
 
-    private List<NeighborhoodWeeklyRow> buildNeighborhoodWeeklyRows(ReportFilters filters, int semanaFinal) {
+    private List<NeighborhoodWeeklyRow> buildNeighborhoodWeeklyRows(ReportFilters filters, int semanaInicial, int semanaFinal) {
         List<NeighborhoodWeeklyCountRow> rawRows = notificationRepository.buscarContagemSemanalPorBairro(
             filters.agravoId(),
             filters.year(),
             filters.bairro(),
+            semanaInicial,
             semanaFinal
         );
-        Map<String, NeighborhoodWeeklyRow> rowsByNeighborhood = initializeRows(filters, semanaFinal);
+        Map<String, NeighborhoodWeeklyRow> rowsByNeighborhood = initializeRows(filters, semanaInicial, semanaFinal);
 
         for (NeighborhoodWeeklyCountRow tuple : rawRows) {
             NeighborhoodWeeklyRow row = rowsByNeighborhood.computeIfAbsent(
                 tuple.bairro(),
-                ignored -> NeighborhoodWeeklyRow.empty(tuple.bairro(), semanaFinal)
+                ignored -> NeighborhoodWeeklyRow.empty(tuple.bairro(), semanaInicial, semanaFinal)
             );
 
             row.weekCounts().put(tuple.semana(), tuple.total());
@@ -97,7 +104,7 @@ public class NeighborhoodWeeklyPdfReportService {
         return rows;
     }
 
-    private Map<String, NeighborhoodWeeklyRow> initializeRows(ReportFilters filters, int semanaFinal) {
+    private Map<String, NeighborhoodWeeklyRow> initializeRows(ReportFilters filters, int semanaInicial, int semanaFinal) {
         List<String> neighborhoods = filters.bairro() != null && !filters.bairro().isBlank()
             ? List.of(filters.bairro())
             : bairroService.listNeighborhoodNames();
@@ -107,13 +114,14 @@ public class NeighborhoodWeeklyPdfReportService {
             if (neighborhood == null || neighborhood.isBlank()) {
                 continue;
             }
-            rows.put(neighborhood, NeighborhoodWeeklyRow.empty(neighborhood, semanaFinal));
+            rows.put(neighborhood, NeighborhoodWeeklyRow.empty(neighborhood, semanaInicial, semanaFinal));
         }
         return rows;
     }
 
-    private byte[] createNeighborhoodWeeklyPdf(List<NeighborhoodWeeklyRow> rows, int semanaFinal, ReportFilters filters) {
+    private byte[] createNeighborhoodWeeklyPdf(List<NeighborhoodWeeklyRow> rows, int semanaInicial, int semanaFinal, ReportFilters filters) {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            int numSemanas = semanaFinal - semanaInicial + 1;
             Document document = new Document(PageSize.A4.rotate(), 24, 24, 24, 24);
             PdfWriter.getInstance(document, outputStream);
             document.open();
@@ -127,31 +135,31 @@ public class NeighborhoodWeeklyPdfReportService {
             title.setAlignment(Element.ALIGN_CENTER);
             document.add(title);
 
-            Paragraph subtitle = new Paragraph(buildReportSubtitle(filters, semanaFinal), subtitleFont);
+            Paragraph subtitle = new Paragraph(buildReportSubtitle(filters, semanaInicial, semanaFinal), subtitleFont);
             subtitle.setSpacingAfter(12f);
             subtitle.setAlignment(Element.ALIGN_CENTER);
             document.add(subtitle);
 
-            PdfPTable table = new PdfPTable(semanaFinal + 2);
+            PdfPTable table = new PdfPTable(numSemanas + 2);
             table.setWidthPercentage(100f);
 
-            float[] widths = new float[semanaFinal + 2];
+            float[] widths = new float[numSemanas + 2];
             widths[0] = 3.8f;
-            for (int index = 1; index <= semanaFinal; index++) {
+            for (int index = 1; index <= numSemanas; index++) {
                 widths[index] = 1.1f;
             }
-            widths[semanaFinal + 1] = 1.3f;
+            widths[numSemanas + 1] = 1.3f;
             table.setWidths(widths);
 
             addHeaderCell(table, "Bairro", headerFont);
-            for (int semana = 1; semana <= semanaFinal; semana++) {
+            for (int semana = semanaInicial; semana <= semanaFinal; semana++) {
                 addHeaderCell(table, "SE " + semana, headerFont);
             }
             addHeaderCell(table, "Total", headerFont);
 
             for (NeighborhoodWeeklyRow row : rows) {
                 addBodyCell(table, row.bairro(), bodyFont, Element.ALIGN_LEFT);
-                for (int semana = 1; semana <= semanaFinal; semana++) {
+                for (int semana = semanaInicial; semana <= semanaFinal; semana++) {
                     addBodyCell(table, String.valueOf(row.weekCounts().getOrDefault(semana, 0L)), bodyFont, Element.ALIGN_CENTER);
                 }
                 addBodyCell(table, String.valueOf(row.total()), bodyFont, Element.ALIGN_CENTER);
@@ -167,9 +175,9 @@ public class NeighborhoodWeeklyPdfReportService {
         }
     }
 
-    private String buildReportSubtitle(ReportFilters filters, int semanaFinal) {
+    private String buildReportSubtitle(ReportFilters filters, int semanaInicial, int semanaFinal) {
         List<String> details = new ArrayList<>();
-        details.add("Semanas 1 a " + semanaFinal);
+        details.add("Semanas " + semanaInicial + " a " + semanaFinal);
 
         if (filters.year() != null) {
             details.add("Ano " + filters.year());
@@ -215,9 +223,9 @@ public class NeighborhoodWeeklyPdfReportService {
             this.total = total;
         }
 
-        static NeighborhoodWeeklyRow empty(String bairro, int semanaFinal) {
+        static NeighborhoodWeeklyRow empty(String bairro, int semanaInicial, int semanaFinal) {
             Map<Integer, Long> weekCounts = new LinkedHashMap<>();
-            for (int semana = 1; semana <= semanaFinal; semana++) {
+            for (int semana = semanaInicial; semana <= semanaFinal; semana++) {
                 weekCounts.put(semana, 0L);
             }
             return new NeighborhoodWeeklyRow(bairro, weekCounts, 0L);

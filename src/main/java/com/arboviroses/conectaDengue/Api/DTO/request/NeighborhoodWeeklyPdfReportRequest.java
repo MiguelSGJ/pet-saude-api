@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class NeighborhoodWeeklyPdfReportRequest {
+    private Integer semanaInicial;
     private Integer semanaFinal;
     private Integer year;
     private String agravo;

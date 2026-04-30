@@ -110,18 +110,20 @@ public class NotificationController
     @GetMapping(value = "/notifications/report/neighborhood/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
     public ResponseEntity<byte[]> generateNeighborhoodWeeklyPdfReport(
         @RequestParam("semanaFinal") Integer semanaFinal,
+        @RequestParam(required = false) Integer semanaInicial,
         @RequestParam(required = false) Integer year,
         @RequestParam(required = false) String agravo,
         @RequestParam(required = false) String bairro
     ) throws InvalidAgravoException {
         NeighborhoodWeeklyPdfReportRequest reportRequest =
-            new NeighborhoodWeeklyPdfReportRequest(semanaFinal, year, agravo, bairro);
+            new NeighborhoodWeeklyPdfReportRequest(semanaInicial, semanaFinal, year, agravo, bairro);
 
         byte[] pdf = neighborhoodWeeklyPdfReportService.generateReport(reportRequest);
 
+        int inicio = semanaInicial != null ? semanaInicial : 1;
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION,
-                "attachment; filename=relatorio-bairros-semanas-1-a-" + semanaFinal + ".pdf")
+                "attachment; filename=relatorio-bairros-semanas-" + inicio + "-a-" + semanaFinal + ".pdf")
             .contentType(MediaType.APPLICATION_PDF)
             .body(pdf);
     }

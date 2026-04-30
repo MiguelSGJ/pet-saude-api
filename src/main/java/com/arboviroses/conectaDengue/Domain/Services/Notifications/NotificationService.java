@@ -219,12 +219,25 @@ public class NotificationService {
 
     public AgravoCountByEpidemiologicalSemanaEpidemiologicaResponse countNotificationsBySemanaEpidemiologica(HttpServletRequest request) throws InvalidAgravoException
     {
-        return new AgravoCountByEpidemiologicalSemanaEpidemiologicaResponse(NotificationFilters.filtersForNotificationsInfoBySemanaEpidemiologica(request, notificationRepository)); 
+        Integer semanaInicial = request.getParameter("semanaInicial") != null ? Integer.valueOf(request.getParameter("semanaInicial")) : null;
+        Integer semanaFinal = request.getParameter("semanaFinal") != null ? Integer.valueOf(request.getParameter("semanaFinal")) : null;
+        return new AgravoCountByEpidemiologicalSemanaEpidemiologicaResponse(
+            NotificationFilters.filtersForNotificationsInfoBySemanaEpidemiologica(request, notificationRepository),
+            semanaInicial,
+            semanaFinal
+        );
     }
 
     public AgravoCountByEpidemiologicalSemanaEpidemiologicaResponse countNotificationsBySemanaEpidemiologicaAccumulated(HttpServletRequest request) throws InvalidAgravoException
     {
-        return new AgravoCountByEpidemiologicalSemanaEpidemiologicaResponse(NotificationFilters.filtersForNotificationsInfoBySemanaEpidemiologica(request, notificationRepository), true); 
+        Integer semanaInicial = request.getParameter("semanaInicial") != null ? Integer.valueOf(request.getParameter("semanaInicial")) : null;
+        Integer semanaFinal = request.getParameter("semanaFinal") != null ? Integer.valueOf(request.getParameter("semanaFinal")) : null;
+        return new AgravoCountByEpidemiologicalSemanaEpidemiologicaResponse(
+            NotificationFilters.filtersForNotificationsInfoBySemanaEpidemiologica(request, notificationRepository),
+            true,
+            semanaInicial,
+            semanaFinal
+        );
     }
 
     public AgravoCountByAgeRange getNotificationsCountByAgeRange(HttpServletRequest request) throws InvalidAgravoException {

@@ -74,12 +74,14 @@ public class NotificationFilters {
         Integer ano = request.getParameter("year") != null ? Integer.valueOf(request.getParameter("year")) : null;
         String agravoName = request.getParameter("agravo");
         String bairro = request.getParameter("bairro");
+        Integer semanaInicial = request.getParameter("semanaInicial") != null ? Integer.valueOf(request.getParameter("semanaInicial")) : null;
+        Integer semanaFinal = request.getParameter("semanaFinal") != null ? Integer.valueOf(request.getParameter("semanaFinal")) : null;
         String agravoId = null;
 
         if (agravoName != null && !agravoName.isEmpty()) {
             agravoId = ConvertNameToIdAgravo.convert(agravoName);
         }
-        
+
         final String finalAgravoId = agravoId;
         Specification<Notification> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -88,16 +90,22 @@ public class NotificationFilters {
                 predicates.add(criteriaBuilder.equal(root.get("idAgravo"), finalAgravoId));
             }
             if (ano != null) {
-                predicates.add(criteriaBuilder.equal(criteriaBuilder.function("date_part", Integer.class, 
-                                                    criteriaBuilder.literal("year"), root.get("dataNotification")), ano)); 
+                predicates.add(criteriaBuilder.equal(criteriaBuilder.function("date_part", Integer.class,
+                                                    criteriaBuilder.literal("year"), root.get("dataNotification")), ano));
             }
             if (bairro != null && !bairro.isEmpty()) {
                 predicates.add(criteriaBuilder.equal(root.get("nomeBairro"), bairro));
             }
-            
+            if (semanaInicial != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("semanaEpidemiologica"), semanaInicial));
+            }
+            if (semanaFinal != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("semanaEpidemiologica"), semanaFinal));
+            }
+
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
-        
+
         return notificationRepository.buscarContagemPorSemanaEpidemiologica(spec);
     }
 
