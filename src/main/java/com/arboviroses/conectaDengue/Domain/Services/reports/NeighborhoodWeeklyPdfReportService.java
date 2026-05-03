@@ -24,6 +24,7 @@ import com.lowagie.text.FontFactory;
 import com.lowagie.text.PageSize;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.Phrase;
+import com.lowagie.text.Rectangle;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
@@ -122,14 +123,17 @@ public class NeighborhoodWeeklyPdfReportService {
     private byte[] createNeighborhoodWeeklyPdf(List<NeighborhoodWeeklyRow> rows, int semanaInicial, int semanaFinal, ReportFilters filters) {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             int numSemanas = semanaFinal - semanaInicial + 1;
-            Document document = new Document(PageSize.A4.rotate(), 24, 24, 24, 24);
+            Document document = new Document(buildPageSize(numSemanas), 24, 24, 24, 24);
             PdfWriter.getInstance(document, outputStream);
             document.open();
 
+            float bodyFontSize = numSemanas > 20 ? 7f : 8f;
+            float headerFontSize = numSemanas > 20 ? 7.5f : 9f;
+
             Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14);
             Font subtitleFont = FontFactory.getFont(FontFactory.HELVETICA, 10);
-            Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Color.WHITE);
-            Font bodyFont = FontFactory.getFont(FontFactory.HELVETICA, 8);
+            Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, headerFontSize, Color.WHITE);
+            Font bodyFont = FontFactory.getFont(FontFactory.HELVETICA, bodyFontSize);
 
             Paragraph title = new Paragraph("Relatório por bairro e semana epidemiológica", titleFont);
             title.setAlignment(Element.ALIGN_CENTER);
@@ -142,14 +146,7 @@ public class NeighborhoodWeeklyPdfReportService {
 
             PdfPTable table = new PdfPTable(numSemanas + 2);
             table.setWidthPercentage(100f);
-
-            float[] widths = new float[numSemanas + 2];
-            widths[0] = 3.8f;
-            for (int index = 1; index <= numSemanas; index++) {
-                widths[index] = 1.1f;
-            }
-            widths[numSemanas + 1] = 1.3f;
-            table.setWidths(widths);
+            table.setWidths(buildColumnWidths(numSemanas));
 
             addHeaderCell(table, "Bairro", headerFont);
             for (int semana = semanaInicial; semana <= semanaFinal; semana++) {
@@ -196,7 +193,8 @@ public class NeighborhoodWeeklyPdfReportService {
         PdfPCell cell = new PdfPCell(new Phrase(value, font));
         cell.setHorizontalAlignment(Element.ALIGN_CENTER);
         cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        cell.setPadding(6f);
+        cell.setNoWrap(true);
+        cell.setPadding(4f);
         cell.setBackgroundColor(new Color(41, 76, 122));
         table.addCell(cell);
     }
@@ -205,8 +203,28 @@ public class NeighborhoodWeeklyPdfReportService {
         PdfPCell cell = new PdfPCell(new Phrase(value, font));
         cell.setHorizontalAlignment(alignment);
         cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        cell.setPadding(5f);
+        cell.setNoWrap(true);
+        cell.setPadding(4f);
         table.addCell(cell);
+    }
+
+    private Rectangle buildPageSize(int numSemanas) {
+        float minLandscapeWidth = PageSize.A4.getHeight();
+        float dynamicWidth = 230f + (numSemanas * 34f);
+        float pageWidth = Math.max(minLandscapeWidth, dynamicWidth);
+        return new Rectangle(pageWidth, PageSize.A4.getWidth());
+    }
+
+    private float[] buildColumnWidths(int numSemanas) {
+        float[] widths = new float[numSemanas + 2];
+        widths[0] = 5.2f;
+
+        for (int index = 1; index <= numSemanas; index++) {
+            widths[index] = 1.8f;
+        }
+
+        widths[numSemanas + 1] = 2f;
+        return widths;
     }
 
     private record ReportFilters(String agravoId, Integer year, String bairro) {
