@@ -47,6 +47,11 @@ public class NotificationController
         return ResponseEntity.ok().body(SuccessResponseDTO.setResponse(notificationService.saveNotificationsFromXlsx(file), "arquivo processado com sucesso"));
     }
 
+    @PostMapping("/uploadDbf")
+    public ResponseEntity<SuccessResponseDTO<SaveCsvResponseDTO>> uploadDbf(@RequestParam("file") MultipartFile file) throws Exception {
+        return ResponseEntity.ok().body(SuccessResponseDTO.setResponse(notificationService.saveNotificationsFromDbf(file), "arquivo processado com sucesso"));
+    }
+
     @PostMapping("/saveNotifications")
     public ResponseEntity<SuccessResponseDTO<SaveCsvResponseDTO>> saveNotifications(@RequestBody NotificationBatchDTO notificationsData) throws Exception {
         return ResponseEntity.ok().body(SuccessResponseDTO.setResponse(notificationService.saveNotificationsFromBatch(notificationsData), "notificações salvas com sucesso"));

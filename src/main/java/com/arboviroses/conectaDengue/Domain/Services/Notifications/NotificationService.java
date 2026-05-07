@@ -31,6 +31,7 @@ import com.arboviroses.conectaDengue.Domain.Entities.Notification.NotificationWi
 import com.arboviroses.conectaDengue.Domain.Filters.NotificationFilters;
 import com.arboviroses.conectaDengue.Domain.Services.Bairros.BairroService;
 import com.arboviroses.conectaDengue.Domain.Repositories.Notifications.NotificationRepository;
+import com.arboviroses.conectaDengue.Utils.File.DbfNotificationReader;
 import com.arboviroses.conectaDengue.Utils.File.XlsxNotificationReader;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -49,6 +50,11 @@ public class NotificationService {
 
     public SaveCsvResponseDTO saveNotificationsFromXlsx(MultipartFile file) throws Exception {
         List<NotificationDataDTO> dtos = XlsxNotificationReader.read(file.getInputStream());
+        return saveNotificationsFromBatch(new NotificationBatchDTO(dtos));
+    }
+
+    public SaveCsvResponseDTO saveNotificationsFromDbf(MultipartFile file) throws Exception {
+        List<NotificationDataDTO> dtos = DbfNotificationReader.read(file.getInputStream());
         return saveNotificationsFromBatch(new NotificationBatchDTO(dtos));
     }
 
