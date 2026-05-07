@@ -1,6 +1,7 @@
 package com.arboviroses.conectaDengue.Domain.Repositories.Notifications;
 
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,10 +16,13 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     Page<Notification> findByIdAgravo(Pageable pageable, String idAgravo);
 
     @Query("""
-        SELECT n 
-        FROM Notification n 
-        WHERE FUNCTION('date_part', 'year', n.dataNotification) = :year 
+        SELECT n
+        FROM Notification n
+        WHERE FUNCTION('date_part', 'year', n.dataNotification) = :year
         AND n.idAgravo = :idAgravo
         """)
     List<Notification> findByYearAndIdAgravo(int year, String idAgravo);
+
+    @Query("SELECT COALESCE(MAX(n.idNotification), 0) FROM Notification n")
+    Optional<Long> findMaxId();
 }

@@ -1,20 +1,19 @@
 package com.arboviroses.conectaDengue.Utils.File;
 
 import com.arboviroses.conectaDengue.Api.DTO.request.NotificationDataDTO;
-import com.linuxense.javadbf.DBFReader;
+import com.opencsv.CSVParserBuilder;
+import com.opencsv.CSVReader;
+import com.opencsv.CSVReaderBuilder;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.SimpleDateFormat;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.util.*;
 import java.util.function.BiConsumer;
-import java.util.logging.Logger;
 
-public class DbfNotificationReader {
-
-    private static final Logger log = Logger.getLogger(DbfNotificationReader.class.getName());
-
-    private static final Set<String> DATE_COLUMNS = Set.of("DT_SIN_PRI", "DT_NASC");
+public class CsvNotificationReader {
 
     private static final Map<String, BiConsumer<NotificationDataDTO, String>> COLUMN_HANDLERS = new LinkedHashMap<>();
 
@@ -31,31 +30,50 @@ public class DbfNotificationReader {
         COLUMN_HANDLERS.put("NU_IDADE_N", (dto, v) -> dto.setIdade(parseIdadeSinan(v)));
     }
 
+    private static char detectSeparator(InputStream inputStream) throws IOException {
+        byte[] buffer = new byte[4096];
+        int read = inputStream.read(buffer);
+        if (read <= 0) return ';';
+
+        String firstLine = new String(buffer, 0, read, Charset.forName("ISO-8859-1"))
+                .split("\n")[0];
+
+        return Arrays.stream(new Character[]{';', ',', '\t', '|'})
+                .max(Comparator.comparingLong(sep -> firstLine.chars().filter(c -> c == sep).count()))
+                .orElse(';');
+    }
+
     public static List<NotificationDataDTO> read(InputStream inputStream) throws IOException {
         List<NotificationDataDTO> result = new ArrayList<>();
-        SimpleDateFormat fmt = new SimpleDateFormat("dd/MM/yyyy");
 
-        try (DBFReader reader = new DBFReader(inputStream)) {
-            Map<String, Integer> fieldIndex = buildFieldIndex(reader);
+        BufferedInputStream buffered = new BufferedInputStream(inputStream);
+        buffered.mark(4096);
+        char separator = detectSeparator(buffered);
+        buffered.reset();
 
-            Object[] row;
-            while ((row = reader.nextRecord()) != null) {
+        InputStreamReader streamReader = new InputStreamReader(buffered, Charset.forName("ISO-8859-1"));
+
+        try (CSVReader csvReader = new CSVReaderBuilder(streamReader)
+                .withCSVParser(new CSVParserBuilder().withSeparator(separator).build())
+                .build()) {
+
+            String[] header = csvReader.readNext();
+            if (header == null) return result;
+
+            Map<String, Integer> columnIndex = buildColumnIndex(header);
+
+            String[] row;
+            while ((row = csvReader.readNext()) != null) {
                 NotificationDataDTO dto = new NotificationDataDTO();
-                final Object[] currentRow = row;
+                final String[] currentRow = row;
 
                 COLUMN_HANDLERS.forEach((colName, handler) -> {
-                    Integer idx = fieldIndex.get(colName);
-                    if (idx == null || currentRow[idx] == null) return;
+                    Integer idx = columnIndex.get(colName);
+                    if (idx == null || idx >= currentRow.length) return;
 
-                    String value;
-                    if (DATE_COLUMNS.contains(colName) && currentRow[idx] instanceof Date date) {
-                        value = fmt.format(date);
-                    } else {
-                        value = objectToString(currentRow[idx]);
-                    }
-
-                    if (!value.isBlank()) {
-                        handler.accept(dto, value.trim());
+                    String value = currentRow[idx].trim();
+                    if (!value.isEmpty()) {
+                        handler.accept(dto, value);
                     }
                 });
 
@@ -66,26 +84,15 @@ public class DbfNotificationReader {
         return result;
     }
 
-    private static Map<String, Integer> buildFieldIndex(DBFReader reader) {
+    private static Map<String, Integer> buildColumnIndex(String[] header) {
         Map<String, Integer> index = new HashMap<>();
-        List<String> allFields = new ArrayList<>();
-        for (int i = 0; i < reader.getFieldCount(); i++) {
-            String name = reader.getField(i).getName().trim();
-            allFields.add(name);
+        for (int i = 0; i < header.length; i++) {
+            String name = header[i].trim();
             if (COLUMN_HANDLERS.containsKey(name)) {
                 index.put(name, i);
             }
         }
-        log.info("[DbfNotificationReader] campos no arquivo: " + allFields);
-        log.info("[DbfNotificationReader] campos mapeados: " + index.keySet());
         return index;
-    }
-
-    private static String objectToString(Object value) {
-        if (value instanceof Double d) {
-            return d == Math.floor(d) ? String.valueOf(d.longValue()) : String.valueOf(d);
-        }
-        return value.toString().trim();
     }
 
     private static int parseIdadeSinan(String v) {

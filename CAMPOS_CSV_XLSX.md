@@ -1,135 +1,127 @@
-# Documentação dos Campos dos Arquivos CSV e XLSX
-
-## Visão Geral
-
-Este documento descreve os campos utilizados nos arquivos CSV e XLSX que são processados pelo sistema ConectaDengue para importação de dados de notificações de arboviroses (Dengue, Zika e Chikungunya).
+# Documentação de Importação de Notificações
 
 ## Formatos de Arquivo Suportados
 
-- **CSV**: Arquivos de texto separados por vírgula (`.csv`)
-- **XLSX**: Planilhas do Microsoft Excel (`.xlsx`)
+| Formato | Endpoint | Comportamento |
+|---------|----------|---------------|
+| `.xlsx` | `POST /api/uploadXlsx` | Assíncrono — retorna `202 Accepted` imediatamente |
+| `.dbf`  | `POST /api/uploadDbf`  | Assíncrono — retorna `202 Accepted` imediatamente |
+| `.csv`  | `POST /api/uploadCsv`  | Assíncrono — retorna `202 Accepted` imediatamente |
 
-## Campos Obrigatórios
-
-### Campos Principais da Notificação
-
-| Campo | Tipo | Descrição | Exemplo | Observações |
-|-------|------|-----------|---------|-------------|
-| `NU_NOTIFIC` | Long | Número único da notificação | `500` | Campo obrigatório, usado como ID primário |
-| `ID_AGRAVO` | String | Código CID-10 do agravo/doença | `A90`, `A92.0`, `A928` | **A90** = Dengue, **A92.0** = Chikungunya, **A928** = Zika |
-| `DT_NOTIFIC` | Date | Data da notificação | `10/10/2006` | Formato: dd/MM/yyyy |
-| `DT_NASC` | Date | Data de nascimento do paciente | `15/05/1980` | Formato: dd/MM/yyyy |
-| `CLASSI_FIN` | String | Classificação final do caso | `100` | Código da classificação epidemiológica |
-| `CS_SEXO` | String | Sexo do paciente | `M`, `F` | **M** = Masculino, **F** = Feminino |
-| `NM_BAIRRO` | String | Nome do bairro de residência | `ABOLIÇÃO` | Nome será validado contra bairros de Mossoró |
-| `ID_BAIRRO` | Integer | Código numérico do bairro | `1`, `27` | Pode ser vazio (0 se não informado) |
-| `EVOLUCAO` | String | Evolução do caso | `1`, `2` | Código do desfecho do caso |
-| `IDADE` | Integer | Idade do paciente | `27`, `42.5` | Pode conter decimais (ex: 27.5) |
-
-## Processamento dos Campos
-
-### 1. Data de Nascimento (`DT_NASC`) e Data de Notificação (`DT_NOTIFIC`)
-- **Formato**: dd/MM/yyyy
-- **Processamento**: Convertidas para objetos `Date` usando a classe `StringToDateCSV`
-- **Uso**: Cálculo automático da idade quando o campo `IDADE` não está disponível
-
-### 2. Idade (`IDADE`)
-- **Processamento**: 
-  - Se o campo contém ponto decimal (ex: `27.5`), apenas a parte inteira é considerada
-  - Se o campo está vazio ou é 0, a idade é calculada automaticamente pela diferença entre `DT_NOTIFIC` e `DT_NASC`
-- **Resultado**: Valor inteiro representando anos completos
-
-### 3. Código do Agravo (`ID_AGRAVO`)
-- **Códigos aceitos**:
-  - `A90`: Dengue
-  - `A92.0`: Chikungunya  
-  - `A928`: Zika
-- **Validação**: O sistema possui conversão automática de nomes para códigos:
-  - "DENGUE" → "A90"
-  - "CHIKUNGUNYA" → "A92.0"
-  - "ZIKA" → "A928"
-
-### 4. Bairro (`NM_BAIRRO`)
-- **Validação**: O nome do bairro é validado contra uma lista de bairros de Mossoró
-- **Processamento**: Usa a classe `NeighborhoodsMossoro` para buscar e normalizar nomes de bairros
-- **Comportamento**: Apenas notificações com bairros válidos são processadas
-
-### 5. Semana Epidemiológica
-- **Campo**: Calculado automaticamente (não precisa estar no arquivo)
-- **Cálculo**: Baseado na `DT_NOTIFIC`, calcula-se a semana epidemiológica seguindo o padrão:
-  - Encontra o primeiro domingo do ano
-  - Conta quantas semanas se passaram desde então
-  - Adiciona 1 para obter o número da semana
-
-## Exemplo de Estrutura de Arquivo
-
-### CSV
-```csv
-NU_NOTIFIC,ID_AGRAVO,DT_NOTIFIC,DT_NASC,CLASSI_FIN,CS_SEXO,NM_BAIRRO,ID_BAIRRO,EVOLUCAO,IDADE
-500,A90,10/10/2006,10/10/2006,100,M,ABOLIÇÃO,1,1,27
-501,A92.0,15/03/2023,20/01/1985,200,F,CENTRO,5,2,38.5
-```
-
-### XLSX
-A primeira linha deve conter os cabeçalhos (nomes dos campos) e as linhas subsequentes os dados.
-
-## Tratamento de Erros
-
-### Notificações com Erro
-- Notificações que falham na validação são armazenadas na tabela `notifications_with_error`
-- Campos que causam erros comuns:
-  - Datas em formato inválido
-  - Bairros não encontrados na base de Mossoró
-  - Códigos de agravo inválidos
-  - Campos obrigatórios vazios
-
-### Log de Iterações
-- Cada importação recebe um número de iteração único
-- Permite rastreamento de quando cada dado foi importado
-- Facilita identificação de erros por lote de importação
-
-## Campos Calculados/Derivados
-
-| Campo Derivado | Origem | Descrição |
-|----------------|--------|-----------|
-| `semanaEpidemiologica` | `DT_NOTIFIC` | Semana epidemiológica baseada na data de notificação |
-| `idadePaciente` | `IDADE` ou (`DT_NOTIFIC` - `DT_NASC`) | Idade em anos, calculada se não fornecida |
-
-## Filtros e Consultas Disponíveis
-
-O sistema permite filtrar dados por:
-- **Ano**: Baseado na `DT_NOTIFIC`
-- **Agravo**: Dengue, Zika ou Chikungunya
-- **Bairro**: Nome específico do bairro
-- **Sexo**: Masculino ou Feminino
-- **Evolução**: Código de desfecho do caso
-- **Faixa Etária**: Intervalos pré-definidos de idade
-
-## Validações Importantes
-
-1. **Formato de Data**: Deve seguir rigorosamente dd/MM/yyyy
-2. **Bairros**: Devem existir na base de dados de Mossoró
-3. **Códigos CID**: Apenas A90, A92.0 e A928 são aceitos
-4. **Sexo**: Apenas 'M' ou 'F'
-5. **Campos Numéricos**: NU_NOTIFIC, ID_BAIRRO, IDADE devem ser válidos
-
-## Notas Técnicas
-
-- **Codificação**: Arquivos devem estar em UTF-8
-- **Separador CSV**: Vírgula (,)
-- **Células Vazias**: Tratadas como strings vazias ou valores padrão (0 para numéricos)
-- **Fórmulas XLSX**: São avaliadas e o resultado é usado como valor
-- **Linhas de Cabeçalho**: A primeira linha é sempre considerada cabeçalho
-
-## Endpoints da API
-
-O sistema expõe diversos endpoints para consulta dos dados importados:
-
-- `POST /api/savecsvdata`: Upload de arquivos CSV/XLSX
-- `GET /api/notifications`: Listagem paginada de notificações
-- `GET /api/notifications/count`: Contadores diversos (sexo, bairro, evolução, etc.)
-- `GET /api/notifications/errors`: Notificações com erro de processamento
+Todos os endpoints recebem o arquivo via `multipart/form-data` com a chave `file`.
 
 ---
 
-*Para mais informações sobre a estrutura do banco de dados e entidades, consulte as classes `Notification` e `NotificationWithError` no código fonte.*
+## Colunas Aceitas
+
+A tabela abaixo descreve todas as colunas que o sistema reconhece. **O nome da coluna deve ser exatamente igual** (maiúsculas) em qualquer formato enviado.
+
+| Coluna | Tipo | Obrigatório | Descrição |
+|--------|------|-------------|-----------|
+| `NU_NOTIFIC` | Long | Não¹ | Número único da notificação no SINAN |
+| `ID_AGRAVO` | String | Sim | Código CID-10: `A90` (Dengue), `A92.0` (Chikungunya), `A928` (Zika) |
+| `DT_SIN_PRI` | Data | Não | Data dos primeiros sintomas — formato `dd/MM/yyyy` |
+| `DT_NASC` | Data | Não | Data de nascimento do paciente — formato `dd/MM/yyyy` |
+| `CLASSI_FIN` | String | Não | Classificação epidemiológica final |
+| `CS_SEXO` | String | Não | Sexo: `M` = Masculino, `F` = Feminino |
+| `NM_BAIRRO` | String | Não | Nome do bairro de residência |
+| `ID_BAIRRO` | Integer | Não | Código numérico do bairro |
+| `EVOLUCAO` | String | Não | Código do desfecho do caso |
+| `NU_IDADE_N` | Integer | Não | Idade no formato SINAN (ex: `4027` = 27 anos) |
+
+> ¹ `NU_NOTIFIC` é obrigatório internamente como chave primária. Se ausente (comum em arquivos `.dbf`), o sistema gera IDs sequenciais a partir do maior ID já existente no banco.
+
+**Colunas extras no arquivo são ignoradas.** Só as listadas acima são processadas.
+
+---
+
+## Particularidades por Formato
+
+### XLSX
+- Lido com Apache POI (`XSSFWorkbook`)
+- Primeira linha é o cabeçalho
+- Suporta células com fórmulas — são avaliadas antes de ler o valor
+- Datas podem estar como número serial do Excel ou string `dd/MM/yyyy`
+
+### DBF
+- Lido com `javadbf` (`com.github.albfernandez:javadbf:1.14.0`)
+- Nomes de colunas ficam no header do arquivo, não em uma linha de dados
+- Charset detectado automaticamente pelo Language Driver ID do header (byte 29)
+- Campos numéricos retornados como `Double` — convertidos para inteiro internamente
+- `NU_NOTIFIC` não existe nos exports padrão do SINAN: IDs gerados automaticamente
+
+### CSV
+- Lido com OpenCSV
+- Primeira linha é o cabeçalho
+- **Separador detectado automaticamente** entre `;`, `,`, `\t` e `|` — escolhe o que aparecer mais vezes na primeira linha
+- Charset: ISO-8859-1 (padrão de exports do SINAN)
+
+---
+
+## Campos Calculados Automaticamente
+
+Estes campos não precisam estar no arquivo — o sistema os calcula:
+
+| Campo | Calculado a partir de | Regra |
+|-------|-----------------------|-------|
+| `semanaEpidemiologica` | `DT_SIN_PRI` | Semana epidemiológica brasileira (inicia no domingo) |
+| `idadePaciente` | `NU_IDADE_N` ou (`DT_SIN_PRI` − `DT_NASC`) | Usa `NU_IDADE_N` se disponível; senão calcula pela diferença de datas |
+
+### Formato `NU_IDADE_N` (padrão SINAN)
+O valor é um inteiro de 4 dígitos: os 3 últimos são o valor, o primeiro indica a unidade.
+
+| Prefixo | Unidade |
+|---------|---------|
+| `4` | Anos |
+| `3` | Meses |
+| `2` | Dias |
+| `1` | Horas |
+
+Exemplo: `4027` = 27 anos. O sistema extrai a idade em anos apenas quando o prefixo é `4`; nos demais casos salva `0`.
+
+---
+
+## Tratamento de Dados Ausentes
+
+| Campo ausente | Comportamento |
+|---------------|---------------|
+| `NU_NOTIFIC` | ID gerado sequencialmente (`max(id) + 1` para cada registro sem ID) |
+| `ID_BAIRRO` | Salvo como `0` |
+| `NU_IDADE_N` + `DT_NASC` ambos ausentes | Idade salva como `999` (indica desconhecida) |
+| `NU_IDADE_N` ausente mas `DT_NASC` presente | Idade calculada pela diferença entre `DT_NASC` e `DT_SIN_PRI` |
+| Qualquer outro campo | Salvo como `null` — não impede o registro de ser salvo |
+
+---
+
+## Tratamento de Erros de Registro
+
+O processamento **não para em caso de erro individual**. Para cada registro:
+
+1. Tenta converter e salvar normalmente
+2. Se a conversão falhar, o registro é descartado silenciosamente (erro logado no console)
+3. Se o registro for salvo mas tiver inconsistências (bairro inválido, agravo inválido, etc.), é gravado na tabela `notifications_with_error` **e também** na tabela principal
+
+Cada importação recebe um número de **iteração** — permite identificar quais erros vieram de qual lote.
+
+### Consultar erros da última importação
+```
+GET /api/notifications/errors
+```
+
+---
+
+## Endpoints de Consulta
+
+| Endpoint | Descrição |
+|----------|-----------|
+| `POST /api/uploadXlsx` | Importar arquivo `.xlsx` |
+| `POST /api/uploadDbf` | Importar arquivo `.dbf` |
+| `POST /api/uploadCsv` | Importar arquivo `.csv` |
+| `GET /api/notifications` | Listagem paginada de notificações |
+| `GET /api/notifications/count` | Total de notificações por agravo |
+| `GET /api/notifications/count/sexo` | Contagem por sexo |
+| `GET /api/notifications/count/epidemiologicalWeek` | Contagem por semana epidemiológica |
+| `GET /api/notifications/count/ageRange` | Contagem por faixa etária |
+| `GET /api/notifications/count/neighborhood` | Contagem por bairro |
+| `GET /api/notifications/count/evolucao` | Contagem por evolução do caso |
+| `GET /api/notifications/errors` | Notificações com erro da última importação |

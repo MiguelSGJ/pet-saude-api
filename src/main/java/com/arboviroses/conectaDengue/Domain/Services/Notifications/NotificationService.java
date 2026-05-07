@@ -31,6 +31,7 @@ import com.arboviroses.conectaDengue.Domain.Entities.Notification.NotificationWi
 import com.arboviroses.conectaDengue.Domain.Filters.NotificationFilters;
 import com.arboviroses.conectaDengue.Domain.Services.Bairros.BairroService;
 import com.arboviroses.conectaDengue.Domain.Repositories.Notifications.NotificationRepository;
+import com.arboviroses.conectaDengue.Utils.File.CsvNotificationReader;
 import com.arboviroses.conectaDengue.Utils.File.DbfNotificationReader;
 import com.arboviroses.conectaDengue.Utils.File.XlsxNotificationReader;
 import jakarta.persistence.EntityManager;
@@ -49,12 +50,41 @@ public class NotificationService {
     private EntityManager entityManager;
 
     public SaveCsvResponseDTO saveNotificationsFromXlsx(MultipartFile file) throws Exception {
-        List<NotificationDataDTO> dtos = XlsxNotificationReader.read(file.getInputStream());
+        return saveNotificationsFromXlsxBytes(file.getBytes());
+    }
+
+    public SaveCsvResponseDTO saveNotificationsFromXlsxBytes(byte[] fileBytes) throws Exception {
+        List<NotificationDataDTO> dtos = XlsxNotificationReader.read(new java.io.ByteArrayInputStream(fileBytes));
+        return saveNotificationsFromBatch(new NotificationBatchDTO(dtos));
+    }
+
+    public SaveCsvResponseDTO saveNotificationsFromCsvBytes(byte[] fileBytes) throws Exception {
+        List<NotificationDataDTO> dtos = CsvNotificationReader.read(new java.io.ByteArrayInputStream(fileBytes));
+
+        long nextId = notificationRepository.findMaxId().orElse(0L) + 1;
+        for (NotificationDataDTO dto : dtos) {
+            if (dto.getNuNotific() == null) {
+                dto.setNuNotific(nextId++);
+            }
+        }
+
         return saveNotificationsFromBatch(new NotificationBatchDTO(dtos));
     }
 
     public SaveCsvResponseDTO saveNotificationsFromDbf(MultipartFile file) throws Exception {
-        List<NotificationDataDTO> dtos = DbfNotificationReader.read(file.getInputStream());
+        return saveNotificationsFromDbfBytes(file.getBytes());
+    }
+
+    public SaveCsvResponseDTO saveNotificationsFromDbfBytes(byte[] fileBytes) throws Exception {
+        List<NotificationDataDTO> dtos = DbfNotificationReader.read(new java.io.ByteArrayInputStream(fileBytes));
+
+        long nextId = notificationRepository.findMaxId().orElse(0L) + 1;
+        for (NotificationDataDTO dto : dtos) {
+            if (dto.getNuNotific() == null) {
+                dto.setNuNotific(nextId++);
+            }
+        }
+
         return saveNotificationsFromBatch(new NotificationBatchDTO(dtos));
     }
 
@@ -126,7 +156,7 @@ public class NotificationService {
 
         notification.setClassificacao(dto.getClassiFin());
         notification.setSexo(dto.getCsSexo());
-        notification.setIdBairro(dto.getIdBairro());
+        notification.setIdBairro(dto.getIdBairro() != null ? dto.getIdBairro() : 0);
         notification.setNomeBairro(bairroService.normalizeToMainNeighborhood(dto.getNmBairro()));
         notification.setEvolucao(dto.getEvolucao());
 

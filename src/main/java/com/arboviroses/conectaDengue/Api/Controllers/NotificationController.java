@@ -27,6 +27,7 @@ import com.arboviroses.conectaDengue.Api.DTO.response.SaveCsvResponseDTO;
 import com.arboviroses.conectaDengue.Api.DTO.response.SuccessResponseDTO;
 import com.arboviroses.conectaDengue.Api.Exceptions.InvalidAgravoException;
 import com.arboviroses.conectaDengue.Domain.Entities.Notification.NotificationWithError;
+import com.arboviroses.conectaDengue.Domain.Services.Notifications.NotificationAsyncService;
 import com.arboviroses.conectaDengue.Domain.Services.Notifications.NotificationService;
 import com.arboviroses.conectaDengue.Domain.Services.Notifications.NotificationsErrorService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,17 +40,26 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public class NotificationController 
 {
     private final NotificationService notificationService;
+    private final NotificationAsyncService notificationAsyncService;
     private final NotificationsErrorService notificationsErrorService;
     private final NeighborhoodWeeklyPdfReportService neighborhoodWeeklyPdfReportService;
 
     @PostMapping("/uploadXlsx")
-    public ResponseEntity<SuccessResponseDTO<SaveCsvResponseDTO>> uploadXlsx(@RequestParam("file") MultipartFile file) throws Exception {
-        return ResponseEntity.ok().body(SuccessResponseDTO.setResponse(notificationService.saveNotificationsFromXlsx(file), "arquivo processado com sucesso"));
+    public ResponseEntity<SuccessResponseDTO<String>> uploadXlsx(@RequestParam("file") MultipartFile file) throws Exception {
+        notificationAsyncService.processXlsxAsync(file.getBytes());
+        return ResponseEntity.accepted().body(SuccessResponseDTO.setResponse("processamento iniciado", null));
+    }
+
+    @PostMapping("/uploadCsv")
+    public ResponseEntity<SuccessResponseDTO<String>> uploadCsv(@RequestParam("file") MultipartFile file) throws Exception {
+        notificationAsyncService.processCsvAsync(file.getBytes());
+        return ResponseEntity.accepted().body(SuccessResponseDTO.setResponse("processamento iniciado", null));
     }
 
     @PostMapping("/uploadDbf")
-    public ResponseEntity<SuccessResponseDTO<SaveCsvResponseDTO>> uploadDbf(@RequestParam("file") MultipartFile file) throws Exception {
-        return ResponseEntity.ok().body(SuccessResponseDTO.setResponse(notificationService.saveNotificationsFromDbf(file), "arquivo processado com sucesso"));
+    public ResponseEntity<SuccessResponseDTO<String>> uploadDbf(@RequestParam("file") MultipartFile file) throws Exception {
+        notificationAsyncService.processDbfAsync(file.getBytes());
+        return ResponseEntity.accepted().body(SuccessResponseDTO.setResponse("processamento iniciado", null));
     }
 
     @PostMapping("/saveNotifications")
