@@ -117,6 +117,11 @@ public class NotificationController
         return ResponseEntity.ok().body(SuccessResponseDTO.setResponse(notificationService.getBairroCount(request), null));
     }
 
+    @GetMapping("/notifications/latest-date")
+    public ResponseEntity<SuccessResponseDTO<String>> getLatestNotificationDate() {
+        return ResponseEntity.ok().body(SuccessResponseDTO.setResponse(notificationService.getLatestNotificationDate(), null));
+    }
+
     @GetMapping("/notifications/count/evolucao")
     public ResponseEntity<SuccessResponseDTO<Long>> getEvolucao(HttpServletRequest request) throws Exception {
         return ResponseEntity.ok().body(SuccessResponseDTO.setResponse(notificationService.countByEvolucao(request), null));

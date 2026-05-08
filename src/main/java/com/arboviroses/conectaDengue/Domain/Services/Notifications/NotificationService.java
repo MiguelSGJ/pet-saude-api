@@ -9,8 +9,12 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import com.arboviroses.conectaDengue.Utils.ConvertNameToIdAgravo;
 import com.arboviroses.conectaDengue.Utils.StringToDateCSV;
 
@@ -61,10 +65,9 @@ public class NotificationService {
     public SaveCsvResponseDTO saveNotificationsFromCsvBytes(byte[] fileBytes) throws Exception {
         List<NotificationDataDTO> dtos = CsvNotificationReader.read(new java.io.ByteArrayInputStream(fileBytes));
 
-        long nextId = notificationRepository.findMaxId().orElse(0L) + 1;
         for (NotificationDataDTO dto : dtos) {
             if (dto.getNuNotific() == null) {
-                dto.setNuNotific(nextId++);
+                dto.setNuNotific(generateDeterministicId(dto));
             }
         }
 
@@ -78,10 +81,9 @@ public class NotificationService {
     public SaveCsvResponseDTO saveNotificationsFromDbfBytes(byte[] fileBytes) throws Exception {
         List<NotificationDataDTO> dtos = DbfNotificationReader.read(new java.io.ByteArrayInputStream(fileBytes));
 
-        long nextId = notificationRepository.findMaxId().orElse(0L) + 1;
         for (NotificationDataDTO dto : dtos) {
             if (dto.getNuNotific() == null) {
-                dto.setNuNotific(nextId++);
+                dto.setNuNotific(generateDeterministicId(dto));
             }
         }
 
@@ -114,8 +116,8 @@ public class NotificationService {
                         .build();
 
                     notificationsWithError.add(notificationWithError);
-                } 
-                
+                }
+
                 notifications.add(notification);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -123,7 +125,21 @@ public class NotificationService {
         }
 
         if (!notifications.isEmpty()) {
-            notificationRepository.saveAll(notifications);
+            Set<Long> batchIds = notifications.stream()
+                .map(Notification::getIdNotification)
+                .collect(Collectors.toSet());
+
+            Set<Long> existingIds = notificationRepository.findAllById(batchIds).stream()
+                .map(Notification::getIdNotification)
+                .collect(Collectors.toCollection(HashSet::new));
+
+            List<Notification> toInsert = notifications.stream()
+                .filter(n -> !existingIds.contains(n.getIdNotification()))
+                .collect(Collectors.toList());
+
+            if (!toInsert.isEmpty()) {
+                notificationRepository.saveAll(toInsert);
+            }
         }
         
         if (!notificationsWithError.isEmpty()) {
@@ -131,6 +147,25 @@ public class NotificationService {
         }
 
         return new SaveCsvResponseDTO(true);
+    }
+
+    private long generateDeterministicId(NotificationDataDTO dto) {
+        String key = Stream.of(
+            dto.getIdAgravo(),
+            dto.getDtNotific(),
+            dto.getDtNasc(),
+            dto.getCsSexo(),
+            dto.getNmBairro(),
+            dto.getIdade() != null ? dto.getIdade().toString() : "0",
+            dto.getIdBairro() != null ? dto.getIdBairro().toString() : "0"
+        ).map(s -> s != null ? s : "").collect(Collectors.joining("|"));
+
+        long hash = 1000000007L;
+        for (char c : key.toCharArray()) {
+            hash = hash * 31L + c;
+        }
+        hash = Math.abs(hash);
+        return hash == 0 ? 1L : hash;
     }
 
     private Notification convertDtoToNotification(NotificationDataDTO dto) throws ParseException {
@@ -229,6 +264,12 @@ public class NotificationService {
         return cal.get(Calendar.WEEK_OF_YEAR);
     }
  
+
+    public String getLatestNotificationDate() {
+        return notificationRepository.findMaxDate()
+            .map(date -> new java.text.SimpleDateFormat("dd/MM/yyyy").format(date))
+            .orElse(null);
+    }
 
     public Page<DataNotificationResponseDTO> getAllNotificationsPaginated(Pageable pageable)
     {

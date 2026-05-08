@@ -42,7 +42,6 @@ public class NotificationsErrorService {
     public boolean notificationHasError(Notification notification) {
         return (
             notification.getIdAgravo() == null ||
-            notification.getDataNascimento() == null ||
             notification.getDataNotification() == null ||
             notification.getClassificacao() == null ||
             notification.getIdadePaciente() == 0 ||

@@ -5,6 +5,7 @@ import com.linuxense.javadbf.DBFReader;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -35,7 +36,7 @@ public class DbfNotificationReader {
         List<NotificationDataDTO> result = new ArrayList<>();
         SimpleDateFormat fmt = new SimpleDateFormat("dd/MM/yyyy");
 
-        try (DBFReader reader = new DBFReader(inputStream)) {
+        try (DBFReader reader = new DBFReader(inputStream, Charset.forName("ISO-8859-1"))) {
             Map<String, Integer> fieldIndex = buildFieldIndex(reader);
 
             Object[] row;

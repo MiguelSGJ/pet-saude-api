@@ -1,5 +1,6 @@
 package com.arboviroses.conectaDengue.Domain.Repositories.Notifications;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -25,4 +26,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     @Query("SELECT COALESCE(MAX(n.idNotification), 0) FROM Notification n")
     Optional<Long> findMaxId();
+
+    @Query("SELECT MAX(n.dataNotification) FROM Notification n")
+    Optional<Date> findMaxDate();
 }
