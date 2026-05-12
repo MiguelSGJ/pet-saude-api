@@ -22,7 +22,7 @@ import com.arboviroses.conectaDengue.Domain.Services.Determinantes.SocialDetermi
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/determinantes")
+@RequestMapping("/api/determinantes")
 @RequiredArgsConstructor
 public class SocialDeterminantsController {
 

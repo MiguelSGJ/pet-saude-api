@@ -79,6 +79,8 @@ public class CsvNotificationReader {
 
                 result.add(dto);
             }
+        } catch(Exception e) {
+            return null;
         }
 
         return result;
