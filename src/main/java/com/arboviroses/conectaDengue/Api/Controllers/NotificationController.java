@@ -180,8 +180,8 @@ public class NotificationController
     }
 
     @GetMapping("/notifications/latest-date")
-    public ResponseEntity<SuccessResponseDTO<String>> getLatestNotificationDate() {
-        return ResponseEntity.ok().body(SuccessResponseDTO.setResponse(notificationService.getLatestNotificationDate(), null));
+    public ResponseEntity<SuccessResponseDTO<Map<String, String>>> getLatestNotificationDate() {
+        return ResponseEntity.ok().body(SuccessResponseDTO.setResponse(notificationService.getLatestDatesByDisease(), null));
     }
 
     @GetMapping("/notifications/count/evolucao")

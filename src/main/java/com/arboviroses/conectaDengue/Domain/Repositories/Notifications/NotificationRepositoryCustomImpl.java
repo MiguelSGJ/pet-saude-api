@@ -147,10 +147,8 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
         }
 
         if (year != null) {
-            // Usa dataPrimeiroSintoma para filtros de dashboard; fallback para dataNotification em dados antigos
             predicates.add(cb.equal(
-                cb.function("date_part", Integer.class, cb.literal("year"),
-                    cb.coalesce(root.get("dataPrimeiroSintoma"), root.get("dataNotification"))),
+                cb.function("date_part", Integer.class, cb.literal("year"), root.get("dataPrimeiroSintoma")),
                 year
             ));
         }

@@ -183,8 +183,10 @@ public class NotificationService {
         Date dataNotificacao = converterStringParaDate(dto.getDtNotific());
         // DT_SIN_PRI → data de início dos primeiros sintomas (usada nos dashboards)
         Date dataPrimeiroSintoma = converterStringParaDate(dto.getDtSinPri());
-        // Fallback: se DT_NOTIFIC não veio no arquivo, usa DT_SIN_PRI (arquivos antigos)
+        // Se DT_NOTIFIC não veio, usa DT_SIN_PRI como fallback
         if (dataNotificacao == null) dataNotificacao = dataPrimeiroSintoma;
+        // Se DT_SIN_PRI não veio, usa DT_NOTIFIC como melhor aproximação disponível
+        if (dataPrimeiroSintoma == null) dataPrimeiroSintoma = dataNotificacao;
 
         notification.setDataNotification(dataNotificacao);
         notification.setDataPrimeiroSintoma(dataPrimeiroSintoma);
@@ -354,6 +356,15 @@ public class NotificationService {
         return notificationRepository.findMaxDate()
             .map(date -> new java.text.SimpleDateFormat("dd/MM/yyyy").format(date))
             .orElse(null);
+    }
+
+    public Map<String, String> getLatestDatesByDisease() {
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+        Map<String, String> result = new java.util.LinkedHashMap<>();
+        result.put("dengue",       notificationRepository.findMaxDateByAgravo("A90").map(sdf::format).orElse(null));
+        result.put("chikungunya",  notificationRepository.findMaxDateByAgravo("A92.0").map(sdf::format).orElse(null));
+        result.put("zika",         notificationRepository.findMaxDateByAgravo("A928").map(sdf::format).orElse(null));
+        return result;
     }
 
     public Page<DataNotificationResponseDTO> getAllNotificationsPaginated(Pageable pageable)
