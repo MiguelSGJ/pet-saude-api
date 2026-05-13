@@ -12,6 +12,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.security.authentication.AccountStatusException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
@@ -104,6 +105,13 @@ public class GlobalExceptionHandler {
     {
         ApiExceptionResponse exceptionResponse = new ApiExceptionResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
         return new ResponseEntity<>(exceptionResponse, new HttpHeaders(), 401);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Object> HandleExceptions(NoResourceFoundException exception, WebRequest request)
+    {
+        ApiExceptionResponse exceptionResponse = new ApiExceptionResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+        return new ResponseEntity<>(exceptionResponse, new HttpHeaders(), HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(ServletException.class)

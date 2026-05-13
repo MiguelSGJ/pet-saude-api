@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import com.arboviroses.conectaDengue.Domain.Entities.Notification.Notification;
 
@@ -29,4 +30,20 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     @Query("SELECT MAX(n.dataNotification) FROM Notification n")
     Optional<Date> findMaxDate();
+
+    @Query("""
+        SELECT n FROM Notification n
+        WHERE (:year IS NULL OR FUNCTION('date_part', 'year', n.dataNotification) = :year)
+        AND (:week IS NULL OR n.semanaEpidemiologica = :week)
+        AND (:bairroPattern = '%' OR LOWER(n.nomeBairro) LIKE LOWER(:bairroPattern))
+        AND (:idAgravo IS NULL OR n.idAgravo = :idAgravo)
+        ORDER BY n.dataNotification DESC
+        """)
+    Page<Notification> findWithFilters(
+        @Param("year") Integer year,
+        @Param("week") Integer week,
+        @Param("bairroPattern") String bairroPattern,
+        @Param("idAgravo") String idAgravo,
+        Pageable pageable
+    );
 }

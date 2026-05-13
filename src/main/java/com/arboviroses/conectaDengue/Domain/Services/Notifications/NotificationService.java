@@ -15,6 +15,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import com.arboviroses.conectaDengue.Api.DTO.request.UpdateNotificationDTO;
+import com.arboviroses.conectaDengue.Api.DTO.response.ManageNotificationResponseDTO;
+import com.arboviroses.conectaDengue.Domain.Entities.Notification.NotificationWithError;
 import com.arboviroses.conectaDengue.Utils.ConvertNameToIdAgravo;
 import com.arboviroses.conectaDengue.Utils.StringToDateCSV;
 
@@ -264,6 +269,70 @@ public class NotificationService {
         return cal.get(Calendar.WEEK_OF_YEAR);
     }
  
+
+    public Page<ManageNotificationResponseDTO> getNotificationsManage(
+            Integer year, Integer week, String bairro, String idAgravo, int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size);
+        String bairroPattern = (bairro != null && !bairro.isBlank()) ? "%" + bairro + "%" : "%";
+        String agravoParam = (idAgravo != null && !idAgravo.isBlank()) ? idAgravo : null;
+        return notificationRepository.findWithFilters(year, week, bairroPattern, agravoParam, pageable)
+            .map(ManageNotificationResponseDTO::new);
+    }
+
+    public void updateNotification(long id, UpdateNotificationDTO dto) throws ParseException {
+        Notification notification = notificationRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Notificação não encontrada: " + id));
+
+        applyUpdateDto(notification, dto);
+        notificationRepository.save(notification);
+
+        NotificationWithError errorRecord = notificationsErrorService.getNotificationWithErrorById(id);
+        if (errorRecord != null) {
+            syncErrorFromNotification(errorRecord, notification);
+            if (!notificationsErrorService.notificationHasError(notification)) {
+                notificationsErrorService.deleteById(id);
+            } else {
+                notificationsErrorService.saveNotificationWithError(errorRecord);
+            }
+        }
+    }
+
+    public void deleteNotification(long id) {
+        notificationRepository.deleteById(id);
+    }
+
+    private void applyUpdateDto(Notification n, UpdateNotificationDTO dto) throws ParseException {
+        if (dto.getIdAgravo() != null) n.setIdAgravo(dto.getIdAgravo());
+        if (dto.getDtNotific() != null && !dto.getDtNotific().isBlank()) {
+            Date date = converterStringParaDate(dto.getDtNotific());
+            n.setDataNotification(date);
+            if (date != null) n.setSemanaEpidemiologica(calculateSemanaEpidemiologica(date));
+        }
+        if (dto.getDtNasc() != null && !dto.getDtNasc().isBlank()) {
+            n.setDataNascimento(converterStringParaDate(dto.getDtNasc()));
+        }
+        if (dto.getClassiFin() != null) n.setClassificacao(dto.getClassiFin());
+        if (dto.getCsSexo() != null) n.setSexo(dto.getCsSexo());
+        if (dto.getNmBairro() != null) n.setNomeBairro(bairroService.normalizeToMainNeighborhood(dto.getNmBairro()));
+        if (dto.getIdBairro() != null) n.setIdBairro(dto.getIdBairro());
+        if (dto.getEvolucao() != null) n.setEvolucao(dto.getEvolucao());
+        if (dto.getIdade() != null && dto.getIdade() > 0) {
+            n.setIdadePaciente(dto.getIdade());
+        }
+    }
+
+    private void syncErrorFromNotification(NotificationWithError e, Notification n) {
+        e.setIdAgravo(n.getIdAgravo());
+        e.setDataNotification(n.getDataNotification());
+        e.setDataNascimento(n.getDataNascimento());
+        e.setClassificacao(n.getClassificacao());
+        e.setSexo(n.getSexo());
+        e.setNomeBairro(n.getNomeBairro());
+        e.setIdBairro(n.getIdBairro());
+        e.setEvolucao(n.getEvolucao());
+        e.setIdadePaciente(n.getIdadePaciente());
+        e.setSemanaEpidemiologica(n.getSemanaEpidemiologica());
+    }
 
     public String getLatestNotificationDate() {
         return notificationRepository.findMaxDate()

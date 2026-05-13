@@ -12,7 +12,7 @@ public class ConvertCSVLineToNotifications {
     public static Notification convertCsvLineToNotificationObject(String[] line, List<String> header)
     {   
         Date dataNascimento = StringToDateCSV.ConvertStringToDate(line[header.indexOf("DT_NASC")]);
-        Date dataNotification = StringToDateCSV.ConvertStringToDate(line[header.indexOf("DT_NOTIFIC")]);
+        Date dataNotification = StringToDateCSV.ConvertStringToDate(line[header.indexOf("DT_SIN_PRI")]);
         int epidemiologicalWeek = calculateEpidemiologicalWeek(dataNotification);
         int idade = extractIdade(header, line);
 

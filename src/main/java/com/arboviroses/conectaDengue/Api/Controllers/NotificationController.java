@@ -3,14 +3,20 @@ package com.arboviroses.conectaDengue.Api.Controllers;
 import java.util.List;
 import java.util.Map;
 
+import com.arboviroses.conectaDengue.Api.DTO.request.UpdateNotificationDTO;
+import com.arboviroses.conectaDengue.Api.DTO.response.ManageNotificationResponseDTO;
+import com.arboviroses.conectaDengue.Api.DTO.response.NotificationErrorWithCategoryDTO;
 import com.arboviroses.conectaDengue.Domain.Services.reports.NeighborhoodWeeklyPdfReportService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -115,6 +121,57 @@ public class NotificationController
     @GetMapping("/notifications/count/neighborhood")
     public ResponseEntity<SuccessResponseDTO<List<BairroCountDTO>>> getBairro(HttpServletRequest request) throws InvalidAgravoException {
         return ResponseEntity.ok().body(SuccessResponseDTO.setResponse(notificationService.getBairroCount(request), null));
+    }
+
+    @GetMapping("/notifications/manage")
+    public ResponseEntity<SuccessResponseDTO<Page<ManageNotificationResponseDTO>>> manageNotifications(
+        @RequestParam(required = false) Integer year,
+        @RequestParam(required = false) Integer week,
+        @RequestParam(required = false) String bairro,
+        @RequestParam(required = false) String idAgravo,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size
+    ) {
+        return ResponseEntity.ok(SuccessResponseDTO.setResponse(
+            notificationService.getNotificationsManage(year, week, bairro, idAgravo, page, size), null));
+    }
+
+    @PutMapping("/notifications/{id}")
+    public ResponseEntity<SuccessResponseDTO<String>> updateNotification(
+        @PathVariable long id, @RequestBody UpdateNotificationDTO dto) throws Exception {
+        notificationService.updateNotification(id, dto);
+        return ResponseEntity.ok(SuccessResponseDTO.setResponse("Notificação atualizada", null));
+    }
+
+    @DeleteMapping("/notifications/{id}")
+    public ResponseEntity<SuccessResponseDTO<String>> deleteNotification(@PathVariable long id) {
+        notificationService.deleteNotification(id);
+        return ResponseEntity.ok(SuccessResponseDTO.setResponse("Notificação removida", null));
+    }
+
+    @GetMapping("/notifications/errors/manage")
+    public ResponseEntity<SuccessResponseDTO<Page<NotificationErrorWithCategoryDTO>>> manageErrors(
+        @RequestParam(required = false) String category,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size
+    ) {
+        org.springframework.data.domain.PageRequest pageable =
+            org.springframework.data.domain.PageRequest.of(page, size);
+        return ResponseEntity.ok(SuccessResponseDTO.setResponse(
+            notificationsErrorService.getAllErrorsPaginated(pageable, category), null));
+    }
+
+    @PutMapping("/notifications/errors/{id}")
+    public ResponseEntity<SuccessResponseDTO<String>> updateNotificationError(
+        @PathVariable long id, @RequestBody UpdateNotificationDTO dto) throws Exception {
+        notificationService.updateNotification(id, dto);
+        return ResponseEntity.ok(SuccessResponseDTO.setResponse("Registro atualizado", null));
+    }
+
+    @DeleteMapping("/notifications/errors/{id}")
+    public ResponseEntity<SuccessResponseDTO<String>> deleteNotificationError(@PathVariable long id) {
+        notificationsErrorService.deleteById(id);
+        return ResponseEntity.ok(SuccessResponseDTO.setResponse("Registro removido da lista de erros", null));
     }
 
     @GetMapping("/notifications/latest-date")
