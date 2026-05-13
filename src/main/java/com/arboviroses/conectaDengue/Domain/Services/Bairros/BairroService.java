@@ -38,17 +38,20 @@ public class BairroService {
         return bairroRepository.findByNomeAndCidadeIgnoreCase(nomeNormalizado, DEFAULT_CITY);
     }
 
+    /**
+     * Resolve nome do bairro/sub-bairro para o Bairro canônico do banco (com ID e nome normalizados).
+     * Retorna Optional vazio se não for possível encontrar correspondência.
+     */
+    public Optional<Bairro> resolveBairro(String nomeBairroOuSubBairro) {
+        Optional<Bairro> exactMatch = findBySubBairro(nomeBairroOuSubBairro);
+        if (exactMatch.isPresent()) return exactMatch;
+        return findClosestNeighborhood(nomeBairroOuSubBairro);
+    }
+
     // Normaliza os nomes dos bairros/sub-bairros, esse metodo aplica um algoritmo para encontrar
     // o sub-bairro com o nome mais proximo ao que veio na entrada. Ex: SNTA DELMRA -> SANTA DELMIRA
     public String normalizeToMainNeighborhood(String nomeBairroOuSubBairro) {
-        Optional<Bairro> exactMatch = findBySubBairro(nomeBairroOuSubBairro);
-        if (exactMatch.isPresent()) {
-            return exactMatch.get().getNome();
-        }
-
-        return findClosestNeighborhood(nomeBairroOuSubBairro)
-            .map(Bairro::getNome)
-            .orElse(null);
+        return resolveBairro(nomeBairroOuSubBairro).map(Bairro::getNome).orElse(null);
     }
 
     public List<String> listNeighborhoodNames() {

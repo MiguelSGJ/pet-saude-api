@@ -16,6 +16,10 @@ target/
 .claude
 2_DENGUE 2017 A 2022 exel - UFERSA.xlsx
 2_DENGUE 2020 A 2022 exel - UFERSA.csv
+DENGUE 2021 A 2026 - UFERSA.dbf
+*.dbf
+*.xlsx
+*.csv
 
 ### IntelliJ IDEA ###
 .idea

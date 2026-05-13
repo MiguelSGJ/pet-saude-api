@@ -148,7 +148,7 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
 
         if (year != null) {
             predicates.add(cb.equal(
-                cb.function("date_part", Integer.class, cb.literal("year"), root.get("dataNotification")),
+                cb.function("date_part", Integer.class, cb.literal("year"), root.get("dataPrimeiroSintoma")),
                 year
             ));
         }

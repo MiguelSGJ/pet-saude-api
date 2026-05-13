@@ -49,10 +49,11 @@ public class NotificationFilters {
                 predicates.add(criteriaBuilder.equal(root.get("nomeBairro"), bairro));
             }
             if (year != null) {
-                predicates.add(criteriaBuilder.equal(criteriaBuilder.function("date_part", Integer.class, 
-                                                    criteriaBuilder.literal("year"), root.get("dataNotification")), year));
+                predicates.add(criteriaBuilder.equal(criteriaBuilder.function("date_part", Integer.class,
+                    criteriaBuilder.literal("year"),
+                    root.<java.util.Date>get("dataPrimeiroSintoma")), year));
             }
-            
+
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
 
@@ -91,7 +92,8 @@ public class NotificationFilters {
             }
             if (ano != null) {
                 predicates.add(criteriaBuilder.equal(criteriaBuilder.function("date_part", Integer.class,
-                                                    criteriaBuilder.literal("year"), root.get("dataNotification")), ano));
+                    criteriaBuilder.literal("year"),
+                    root.<java.util.Date>get("dataPrimeiroSintoma")), ano));
             }
             if (bairro != null && !bairro.isEmpty()) {
                 predicates.add(criteriaBuilder.equal(root.get("nomeBairro"), bairro));
@@ -154,7 +156,7 @@ public class NotificationFilters {
             parameters.put("idAgravo", agravoId);
         }
         if (year != null) {
-            jpql.append(" AND FUNCTION('date_part', 'year', n.dataNotification) = :year");
+            jpql.append(" AND FUNCTION('date_part', 'year', n.dataPrimeiroSintoma) = :year");
             parameters.put("year", year.doubleValue());
         }
         if (bairro != null && !bairro.isEmpty()) {
@@ -212,7 +214,7 @@ public class NotificationFilters {
                 predicates.add(criteriaBuilder.equal(
                     criteriaBuilder.function("date_part", Integer.class,
                         criteriaBuilder.literal("year"),
-                        root.get("dataNotification")
+                        root.<java.util.Date>get("dataPrimeiroSintoma")
                     ),
                     year
                 ));
@@ -245,12 +247,13 @@ public class NotificationFilters {
             }
             if (year != null) {
                 predicates.add(criteriaBuilder.equal(criteriaBuilder.function("date_part", Integer.class,
-                                            criteriaBuilder.literal("year"), root.get("dataNotification")), year));
+                    criteriaBuilder.literal("year"),
+                    root.<java.util.Date>get("dataPrimeiroSintoma")), year));
             }
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
-        
+
         return notificationRepository.count(spec);
     }
 
@@ -275,7 +278,8 @@ public class NotificationFilters {
             }
             if (year != null) {
                 predicates.add(criteriaBuilder.equal(criteriaBuilder.function("date_part", Integer.class,
-                                            criteriaBuilder.literal("year"), root.get("dataNotification")), year));
+                    criteriaBuilder.literal("year"),
+                    root.<java.util.Date>get("dataPrimeiroSintoma")), year));
             }
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));

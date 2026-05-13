@@ -1,5 +1,6 @@
 package com.arboviroses.conectaDengue.Domain.Services.auth;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -16,10 +17,17 @@ import com.arboviroses.conectaDengue.Domain.Repositories.Users.UserRepository;
 @Service
 public class AuthenticationService {
     private final UserRepository userRepository;
-    
     private final PasswordEncoder passwordEncoder;
-    
     private final AuthenticationManager authenticationManager;
+
+    @Value("${seed.user.name}")
+    private String seedName;
+
+    @Value("${seed.user.cpf}")
+    private String seedCpf;
+
+    @Value("${seed.user.password}")
+    private String seedPassword;
 
     public AuthenticationService(
         UserRepository userRepository,
@@ -62,13 +70,13 @@ public class AuthenticationService {
     }
 
     public void seed() {
+        if (userRepository.findByCpf(seedCpf).isPresent()) return;
 
         User user = new User()
-                .setFullName("admin")
-                .setCpf("12345678910")
-                .setPassword(passwordEncoder.encode("admin"));
+                .setFullName(seedName)
+                .setCpf(seedCpf)
+                .setPassword(passwordEncoder.encode(seedPassword));
 
-        System.out.println(user);
         userRepository.save(user);
     }
 }

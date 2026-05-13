@@ -9,8 +9,18 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import com.arboviroses.conectaDengue.Api.DTO.request.UpdateNotificationDTO;
+import com.arboviroses.conectaDengue.Api.DTO.response.ManageNotificationResponseDTO;
+import com.arboviroses.conectaDengue.Domain.Entities.Notification.NotificationWithError;
 import com.arboviroses.conectaDengue.Utils.ConvertNameToIdAgravo;
 import com.arboviroses.conectaDengue.Utils.StringToDateCSV;
 
@@ -29,8 +39,11 @@ import com.arboviroses.conectaDengue.Api.Exceptions.InvalidAgravoException;
 import com.arboviroses.conectaDengue.Domain.Entities.Notification.Notification;
 import com.arboviroses.conectaDengue.Domain.Entities.Notification.NotificationWithError;
 import com.arboviroses.conectaDengue.Domain.Filters.NotificationFilters;
+import com.arboviroses.conectaDengue.Domain.Entities.Bairro;
 import com.arboviroses.conectaDengue.Domain.Services.Bairros.BairroService;
 import com.arboviroses.conectaDengue.Domain.Repositories.Notifications.NotificationRepository;
+import com.arboviroses.conectaDengue.Utils.File.CsvNotificationReader;
+import com.arboviroses.conectaDengue.Utils.File.DbfNotificationReader;
 import com.arboviroses.conectaDengue.Utils.File.XlsxNotificationReader;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -48,7 +61,39 @@ public class NotificationService {
     private EntityManager entityManager;
 
     public SaveCsvResponseDTO saveNotificationsFromXlsx(MultipartFile file) throws Exception {
-        List<NotificationDataDTO> dtos = XlsxNotificationReader.read(file.getInputStream());
+        return saveNotificationsFromXlsxBytes(file.getBytes());
+    }
+
+    public SaveCsvResponseDTO saveNotificationsFromXlsxBytes(byte[] fileBytes) throws Exception {
+        List<NotificationDataDTO> dtos = XlsxNotificationReader.read(new java.io.ByteArrayInputStream(fileBytes));
+        return saveNotificationsFromBatch(new NotificationBatchDTO(dtos));
+    }
+
+    public SaveCsvResponseDTO saveNotificationsFromCsvBytes(byte[] fileBytes) throws Exception {
+        List<NotificationDataDTO> dtos = CsvNotificationReader.read(new java.io.ByteArrayInputStream(fileBytes));
+
+        for (NotificationDataDTO dto : dtos) {
+            if (dto.getNuNotific() == null) {
+                dto.setNuNotific(generateDeterministicId(dto));
+            }
+        }
+
+        return saveNotificationsFromBatch(new NotificationBatchDTO(dtos));
+    }
+
+    public SaveCsvResponseDTO saveNotificationsFromDbf(MultipartFile file) throws Exception {
+        return saveNotificationsFromDbfBytes(file.getBytes());
+    }
+
+    public SaveCsvResponseDTO saveNotificationsFromDbfBytes(byte[] fileBytes) throws Exception {
+        List<NotificationDataDTO> dtos = DbfNotificationReader.read(new java.io.ByteArrayInputStream(fileBytes));
+
+        for (NotificationDataDTO dto : dtos) {
+            if (dto.getNuNotific() == null) {
+                dto.setNuNotific(generateDeterministicId(dto));
+            }
+        }
+
         return saveNotificationsFromBatch(new NotificationBatchDTO(dtos));
     }
 
@@ -67,6 +112,7 @@ public class NotificationService {
                         .idAgravo(notification.getIdAgravo())
                         .idadePaciente(notification.getIdadePaciente())
                         .dataNotification(notification.getDataNotification())
+                        .dataPrimeiroSintoma(notification.getDataPrimeiroSintoma())
                         .dataNascimento(notification.getDataNascimento())
                         .classificacao(notification.getClassificacao())
                         .sexo(notification.getSexo())
@@ -78,8 +124,8 @@ public class NotificationService {
                         .build();
 
                     notificationsWithError.add(notificationWithError);
-                } 
-                
+                }
+
                 notifications.add(notification);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -87,7 +133,21 @@ public class NotificationService {
         }
 
         if (!notifications.isEmpty()) {
-            notificationRepository.saveAll(notifications);
+            Set<Long> batchIds = notifications.stream()
+                .map(Notification::getIdNotification)
+                .collect(Collectors.toSet());
+
+            Set<Long> existingIds = notificationRepository.findAllById(batchIds).stream()
+                .map(Notification::getIdNotification)
+                .collect(Collectors.toCollection(HashSet::new));
+
+            List<Notification> toInsert = notifications.stream()
+                .filter(n -> !existingIds.contains(n.getIdNotification()))
+                .collect(Collectors.toList());
+
+            if (!toInsert.isEmpty()) {
+                notificationRepository.saveAll(toInsert);
+            }
         }
         
         if (!notificationsWithError.isEmpty()) {
@@ -97,41 +157,74 @@ public class NotificationService {
         return new SaveCsvResponseDTO(true);
     }
 
+    private long generateDeterministicId(NotificationDataDTO dto) {
+        String key = Stream.of(
+            dto.getIdAgravo(),
+            dto.getDtSinPri() != null ? dto.getDtSinPri() : dto.getDtNotific(),
+            dto.getDtNasc(),
+            dto.getCsSexo(),
+            dto.getNmBairro(),
+            dto.getIdade() != null ? dto.getIdade().toString() : "0",
+            dto.getIdBairro() != null ? dto.getIdBairro().toString() : "0"
+        ).map(s -> s != null ? s : "").collect(Collectors.joining("|"));
+
+        long hash = 1000000007L;
+        for (char c : key.toCharArray()) {
+            hash = hash * 31L + c;
+        }
+        hash = Math.abs(hash);
+        return hash == 0 ? 1L : hash;
+    }
+
     private Notification convertDtoToNotification(NotificationDataDTO dto) throws ParseException {
         Notification notification = new Notification();
 
+        // DT_NOTIFIC → data de registro da notificação
         Date dataNotificacao = converterStringParaDate(dto.getDtNotific());
+        // DT_SIN_PRI → data de início dos primeiros sintomas (usada nos dashboards)
+        Date dataPrimeiroSintoma = converterStringParaDate(dto.getDtSinPri());
+        // Se DT_NOTIFIC não veio, usa DT_SIN_PRI como fallback
+        if (dataNotificacao == null) dataNotificacao = dataPrimeiroSintoma;
+        // Se DT_SIN_PRI não veio, usa DT_NOTIFIC como melhor aproximação disponível
+        if (dataPrimeiroSintoma == null) dataPrimeiroSintoma = dataNotificacao;
 
         notification.setDataNotification(dataNotificacao);
+        notification.setDataPrimeiroSintoma(dataPrimeiroSintoma);
         notification.setIdNotification(dto.getNuNotific());
         notification.setIdAgravo(dto.getIdAgravo());
 
-        if(dto.getIdade() == null || dto.getIdade() == 0) {
-            
-            if(dto.getDtNasc() == null || dto.getDtNasc().isEmpty()) {
-                notification.setIdadePaciente(999); // Idade 999 para indicar que a idade é desconhecida    
+        // Idade: usa NU_IDADE_N se disponível; senão calcula a partir de DT_NASC + ano da notificação
+        if (dto.getIdade() == null || dto.getIdade() == 0) {
+            if (dto.getDtNasc() == null || dto.getDtNasc().isEmpty()) {
+                notification.setIdadePaciente(999); // desconhecida
             } else {
-                notification.setIdadePaciente(calcularIdadeNoAno(dto.getDtNasc(), extrairAno(dataNotificacao)));
+                int anoRef = extrairAno(dataPrimeiroSintoma != null ? dataPrimeiroSintoma : dataNotificacao);
+                int idade  = anoRef > 0 ? calcularIdadeNoAno(dto.getDtNasc(), anoRef) : 0;
+                notification.setIdadePaciente(Math.max(0, idade)); // ≥0; negativo = dados inconsistentes
             }
-
         } else {
             notification.setIdadePaciente(dto.getIdade());
         }
 
         notification.setClassificacao(dto.getClassiFin());
         notification.setSexo(dto.getCsSexo());
-        notification.setIdBairro(dto.getIdBairro());
-        notification.setNomeBairro(bairroService.normalizeToMainNeighborhood(dto.getNmBairro()));
-        notification.setEvolucao(dto.getEvolucao());
 
-        Date dataNascimento = StringToDateCSV.ConvertStringToDate(dto.getDtNasc());
-        
-        notification.setDataNascimento(dataNascimento);
-        
-        if (notification.getDataNotification() != null) {
-            notification.setSemanaEpidemiologica(calculateSemanaEpidemiologica(notification.getDataNotification()));
+        // Resolve bairro pelo nome → obtém nome normalizado e ID do banco automaticamente
+        Optional<Bairro> bairroResolvido = bairroService.resolveBairro(dto.getNmBairro());
+        notification.setNomeBairro(bairroResolvido.map(Bairro::getNome).orElse(null));
+        notification.setIdBairro(bairroResolvido
+            .map(b -> b.getId().intValue())
+            .orElse(dto.getIdBairro() != null ? dto.getIdBairro() : 0));
+
+        notification.setEvolucao(dto.getEvolucao());
+        notification.setDataNascimento(StringToDateCSV.ConvertStringToDate(dto.getDtNasc()));
+
+        // Semana epidemiológica calculada a partir dos primeiros sintomas
+        Date dataParaSemana = dataPrimeiroSintoma != null ? dataPrimeiroSintoma : dataNotificacao;
+        if (dataParaSemana != null) {
+            notification.setSemanaEpidemiologica(calculateSemanaEpidemiologica(dataParaSemana));
         }
-        
+
         return notification;
     }
 
@@ -193,6 +286,86 @@ public class NotificationService {
         return cal.get(Calendar.WEEK_OF_YEAR);
     }
  
+
+    public Page<ManageNotificationResponseDTO> getNotificationsManage(
+            Integer year, Integer week, String bairro, String idAgravo, int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size);
+        String bairroPattern = (bairro != null && !bairro.isBlank()) ? "%" + bairro + "%" : "%";
+        String agravoParam = (idAgravo != null && !idAgravo.isBlank()) ? idAgravo : null;
+        return notificationRepository.findWithFilters(year, week, bairroPattern, agravoParam, pageable)
+            .map(ManageNotificationResponseDTO::new);
+    }
+
+    public void updateNotification(long id, UpdateNotificationDTO dto) throws ParseException {
+        Notification notification = notificationRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Notificação não encontrada: " + id));
+
+        applyUpdateDto(notification, dto);
+        notificationRepository.save(notification);
+
+        NotificationWithError errorRecord = notificationsErrorService.getNotificationWithErrorById(id);
+        if (errorRecord != null) {
+            syncErrorFromNotification(errorRecord, notification);
+            if (!notificationsErrorService.notificationHasError(notification)) {
+                notificationsErrorService.deleteById(id);
+            } else {
+                notificationsErrorService.saveNotificationWithError(errorRecord);
+            }
+        }
+    }
+
+    public void deleteNotification(long id) {
+        notificationRepository.deleteById(id);
+    }
+
+    private void applyUpdateDto(Notification n, UpdateNotificationDTO dto) throws ParseException {
+        if (dto.getIdAgravo() != null) n.setIdAgravo(dto.getIdAgravo());
+        if (dto.getDtNotific() != null && !dto.getDtNotific().isBlank()) {
+            Date date = converterStringParaDate(dto.getDtNotific());
+            n.setDataNotification(date);
+            if (date != null) n.setSemanaEpidemiologica(calculateSemanaEpidemiologica(date));
+        }
+        if (dto.getDtNasc() != null && !dto.getDtNasc().isBlank()) {
+            n.setDataNascimento(converterStringParaDate(dto.getDtNasc()));
+        }
+        if (dto.getClassiFin() != null) n.setClassificacao(dto.getClassiFin());
+        if (dto.getCsSexo() != null) n.setSexo(dto.getCsSexo());
+        if (dto.getNmBairro() != null) n.setNomeBairro(bairroService.normalizeToMainNeighborhood(dto.getNmBairro()));
+        if (dto.getIdBairro() != null) n.setIdBairro(dto.getIdBairro());
+        if (dto.getEvolucao() != null) n.setEvolucao(dto.getEvolucao());
+        if (dto.getIdade() != null && dto.getIdade() > 0) {
+            n.setIdadePaciente(dto.getIdade());
+        }
+    }
+
+    private void syncErrorFromNotification(NotificationWithError e, Notification n) {
+        e.setIdAgravo(n.getIdAgravo());
+        e.setDataNotification(n.getDataNotification());
+        e.setDataPrimeiroSintoma(n.getDataPrimeiroSintoma());
+        e.setDataNascimento(n.getDataNascimento());
+        e.setClassificacao(n.getClassificacao());
+        e.setSexo(n.getSexo());
+        e.setNomeBairro(n.getNomeBairro());
+        e.setIdBairro(n.getIdBairro());
+        e.setEvolucao(n.getEvolucao());
+        e.setIdadePaciente(n.getIdadePaciente());
+        e.setSemanaEpidemiologica(n.getSemanaEpidemiologica());
+    }
+
+    public String getLatestNotificationDate() {
+        return notificationRepository.findMaxDate()
+            .map(date -> new java.text.SimpleDateFormat("dd/MM/yyyy").format(date))
+            .orElse(null);
+    }
+
+    public Map<String, String> getLatestDatesByDisease() {
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+        Map<String, String> result = new java.util.LinkedHashMap<>();
+        result.put("dengue",       notificationRepository.findMaxDateByAgravo("A90").map(sdf::format).orElse(null));
+        result.put("chikungunya",  notificationRepository.findMaxDateByAgravo("A92.0").map(sdf::format).orElse(null));
+        result.put("zika",         notificationRepository.findMaxDateByAgravo("A928").map(sdf::format).orElse(null));
+        return result;
+    }
 
     public Page<DataNotificationResponseDTO> getAllNotificationsPaginated(Pageable pageable)
     {
