@@ -24,6 +24,7 @@ public class NotificationWithError {
     private String idAgravo;
     private int idadePaciente;
     private Date dataNotification;
+    private Date dataPrimeiroSintoma;
     private Date dataNascimento;
     private String classificacao;
     private String sexo;

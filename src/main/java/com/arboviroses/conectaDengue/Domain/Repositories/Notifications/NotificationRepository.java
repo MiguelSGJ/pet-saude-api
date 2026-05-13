@@ -20,7 +20,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Query("""
         SELECT n
         FROM Notification n
-        WHERE FUNCTION('date_part', 'year', n.dataNotification) = :year
+        WHERE FUNCTION('date_part', 'year', COALESCE(n.dataPrimeiroSintoma, n.dataNotification)) = :year
         AND n.idAgravo = :idAgravo
         """)
     List<Notification> findByYearAndIdAgravo(int year, String idAgravo);
@@ -28,16 +28,16 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Query("SELECT COALESCE(MAX(n.idNotification), 0) FROM Notification n")
     Optional<Long> findMaxId();
 
-    @Query("SELECT MAX(n.dataNotification) FROM Notification n")
+    @Query("SELECT COALESCE(MAX(n.dataPrimeiroSintoma), MAX(n.dataNotification)) FROM Notification n")
     Optional<Date> findMaxDate();
 
     @Query("""
         SELECT n FROM Notification n
-        WHERE (:year IS NULL OR FUNCTION('date_part', 'year', n.dataNotification) = :year)
+        WHERE (:year IS NULL OR FUNCTION('date_part', 'year', COALESCE(n.dataPrimeiroSintoma, n.dataNotification)) = :year)
         AND (:week IS NULL OR n.semanaEpidemiologica = :week)
         AND (:bairroPattern = '%' OR LOWER(n.nomeBairro) LIKE LOWER(:bairroPattern))
         AND (:idAgravo IS NULL OR n.idAgravo = :idAgravo)
-        ORDER BY n.dataNotification DESC
+        ORDER BY COALESCE(n.dataPrimeiroSintoma, n.dataNotification) DESC
         """)
     Page<Notification> findWithFilters(
         @Param("year") Integer year,

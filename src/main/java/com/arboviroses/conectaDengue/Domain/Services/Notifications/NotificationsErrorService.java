@@ -47,11 +47,14 @@ public class NotificationsErrorService {
     public boolean notificationHasError(Notification notification) {
         return (
             notification.getIdAgravo() == null ||
-            notification.getDataNotification() == null ||
+            // Exige ao menos uma das duas datas
+            (notification.getDataNotification() == null && notification.getDataPrimeiroSintoma() == null) ||
             notification.getClassificacao() == null ||
-            notification.getIdadePaciente() == 0 ||
+            // Idade 999 = não foi possível calcular (sem NU_IDADE_N nem DT_NASC)
+            notification.getIdadePaciente() == 999 ||
             notification.getSexo() == null ||
-            (notification.getIdBairro() == 0 || notification.getNomeBairro() == null) ||
+            // Bairro inválido apenas quando o nome também não foi resolvido
+            notification.getNomeBairro() == null ||
             notification.getEvolucao() == null
         );
     }
@@ -63,20 +66,33 @@ public class NotificationsErrorService {
     public String categorizeError(NotificationWithError n) {
         if (n.getIdAgravo() == null || n.getIdAgravo().isBlank()) return "DOENCA_NAO_INFORMADA";
         if (n.getNomeBairro() == null || n.getNomeBairro().isBlank()) return "BAIRRO_FALTANDO";
-        if (n.getIdBairro() == 0) return "ID_BAIRRO_FALTANDO";
         if (n.getClassificacao() == null || n.getClassificacao().isBlank()) return "CLASSIFICACAO_FALTANDO";
-        if (n.getDataNotification() == null) return "DATA_FALTANDO";
+        if (n.getDataNotification() == null && n.getDataPrimeiroSintoma() == null) return "DATA_FALTANDO";
         if (n.getSexo() == null || n.getSexo().isBlank()) return "SEXO_NAO_INFORMADO";
         if (n.getEvolucao() == null || n.getEvolucao().isBlank()) return "EVOLUCAO_NAO_INFORMADA";
+        if (n.getIdadePaciente() == 999) return "DATA_NASCIMENTO_FALTANDO";
         return "OUTROS";
     }
 
-    public Page<NotificationErrorWithCategoryDTO> getAllErrorsPaginated(Pageable pageable, String category) {
+    public List<NotificationErrorWithCategoryDTO> getAllErrorsFiltered(String category, Long startDate, Long endDate, String idAgravo) {
+        return notificationWithErrorRepository.findAllWithMaxIteration().stream()
+            .map(n -> new NotificationErrorWithCategoryDTO(n, categorizeError(n)))
+            .filter(n -> category == null || category.isBlank() || category.equals(n.getCategory()))
+            .filter(n -> startDate == null || (n.getDataNotification() != null && n.getDataNotification().getTime() >= startDate))
+            .filter(n -> endDate == null || (n.getDataNotification() != null && n.getDataNotification().getTime() <= endDate))
+            .filter(n -> idAgravo == null || idAgravo.isBlank() || idAgravo.equals(n.getIdAgravo()))
+            .collect(Collectors.toList());
+    }
+
+    public Page<NotificationErrorWithCategoryDTO> getAllErrorsPaginated(Pageable pageable, String category, Long startDate, Long endDate, String idAgravo) {
         List<NotificationWithError> all = notificationWithErrorRepository.findAllWithMaxIteration();
 
         List<NotificationErrorWithCategoryDTO> categorized = all.stream()
             .map(n -> new NotificationErrorWithCategoryDTO(n, categorizeError(n)))
             .filter(n -> category == null || category.isBlank() || category.equals(n.getCategory()))
+            .filter(n -> startDate == null || (n.getDataNotification() != null && n.getDataNotification().getTime() >= startDate))
+            .filter(n -> endDate == null || (n.getDataNotification() != null && n.getDataNotification().getTime() <= endDate))
+            .filter(n -> idAgravo == null || idAgravo.isBlank() || idAgravo.equals(n.getIdAgravo()))
             .collect(Collectors.toList());
 
         int start = (int) pageable.getOffset();

@@ -6,6 +6,7 @@ import java.util.Map;
 import com.arboviroses.conectaDengue.Api.DTO.request.UpdateNotificationDTO;
 import com.arboviroses.conectaDengue.Api.DTO.response.ManageNotificationResponseDTO;
 import com.arboviroses.conectaDengue.Api.DTO.response.NotificationErrorWithCategoryDTO;
+import com.arboviroses.conectaDengue.Domain.Services.reports.ErrorsPdfReportService;
 import com.arboviroses.conectaDengue.Domain.Services.reports.NeighborhoodWeeklyPdfReportService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -49,6 +50,7 @@ public class NotificationController
     private final NotificationAsyncService notificationAsyncService;
     private final NotificationsErrorService notificationsErrorService;
     private final NeighborhoodWeeklyPdfReportService neighborhoodWeeklyPdfReportService;
+    private final ErrorsPdfReportService errorsPdfReportService;
 
     @PostMapping("/uploadXlsx")
     public ResponseEntity<SuccessResponseDTO<String>> uploadXlsx(@RequestParam("file") MultipartFile file) throws Exception {
@@ -152,13 +154,16 @@ public class NotificationController
     @GetMapping("/notifications/errors/manage")
     public ResponseEntity<SuccessResponseDTO<Page<NotificationErrorWithCategoryDTO>>> manageErrors(
         @RequestParam(required = false) String category,
+        @RequestParam(required = false) Long startDate,
+        @RequestParam(required = false) Long endDate,
+        @RequestParam(required = false) String idAgravo,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size
     ) {
         org.springframework.data.domain.PageRequest pageable =
             org.springframework.data.domain.PageRequest.of(page, size);
         return ResponseEntity.ok(SuccessResponseDTO.setResponse(
-            notificationsErrorService.getAllErrorsPaginated(pageable, category), null));
+            notificationsErrorService.getAllErrorsPaginated(pageable, category, startDate, endDate, idAgravo), null));
     }
 
     @PutMapping("/notifications/errors/{id}")
@@ -182,6 +187,23 @@ public class NotificationController
     @GetMapping("/notifications/count/evolucao")
     public ResponseEntity<SuccessResponseDTO<Long>> getEvolucao(HttpServletRequest request) throws Exception {
         return ResponseEntity.ok().body(SuccessResponseDTO.setResponse(notificationService.countByEvolucao(request), null));
+    }
+
+    @GetMapping(value = "/notifications/errors/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> generateErrorsPdfReport(
+        @RequestParam(required = false) String category,
+        @RequestParam(required = false) Long startDate,
+        @RequestParam(required = false) Long endDate,
+        @RequestParam(required = false) String idAgravo
+    ) {
+        byte[] pdf = errorsPdfReportService.generateReport(category, startDate, endDate, idAgravo);
+        String filename = (category != null && !category.isBlank())
+            ? "erros-" + category.toLowerCase() + ".pdf"
+            : "erros-todos.pdf";
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
+            .contentType(MediaType.APPLICATION_PDF)
+            .body(pdf);
     }
 
     @GetMapping(value = "/notifications/report/neighborhood/pdf", produces = MediaType.APPLICATION_PDF_VALUE)

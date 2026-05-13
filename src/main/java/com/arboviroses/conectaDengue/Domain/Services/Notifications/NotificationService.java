@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -38,6 +39,7 @@ import com.arboviroses.conectaDengue.Api.Exceptions.InvalidAgravoException;
 import com.arboviroses.conectaDengue.Domain.Entities.Notification.Notification;
 import com.arboviroses.conectaDengue.Domain.Entities.Notification.NotificationWithError;
 import com.arboviroses.conectaDengue.Domain.Filters.NotificationFilters;
+import com.arboviroses.conectaDengue.Domain.Entities.Bairro;
 import com.arboviroses.conectaDengue.Domain.Services.Bairros.BairroService;
 import com.arboviroses.conectaDengue.Domain.Repositories.Notifications.NotificationRepository;
 import com.arboviroses.conectaDengue.Utils.File.CsvNotificationReader;
@@ -110,6 +112,7 @@ public class NotificationService {
                         .idAgravo(notification.getIdAgravo())
                         .idadePaciente(notification.getIdadePaciente())
                         .dataNotification(notification.getDataNotification())
+                        .dataPrimeiroSintoma(notification.getDataPrimeiroSintoma())
                         .dataNascimento(notification.getDataNascimento())
                         .classificacao(notification.getClassificacao())
                         .sexo(notification.getSexo())
@@ -157,7 +160,7 @@ public class NotificationService {
     private long generateDeterministicId(NotificationDataDTO dto) {
         String key = Stream.of(
             dto.getIdAgravo(),
-            dto.getDtNotific(),
+            dto.getDtSinPri() != null ? dto.getDtSinPri() : dto.getDtNotific(),
             dto.getDtNasc(),
             dto.getCsSexo(),
             dto.getNmBairro(),
@@ -176,38 +179,50 @@ public class NotificationService {
     private Notification convertDtoToNotification(NotificationDataDTO dto) throws ParseException {
         Notification notification = new Notification();
 
+        // DT_NOTIFIC → data de registro da notificação
         Date dataNotificacao = converterStringParaDate(dto.getDtNotific());
+        // DT_SIN_PRI → data de início dos primeiros sintomas (usada nos dashboards)
+        Date dataPrimeiroSintoma = converterStringParaDate(dto.getDtSinPri());
+        // Fallback: se DT_NOTIFIC não veio no arquivo, usa DT_SIN_PRI (arquivos antigos)
+        if (dataNotificacao == null) dataNotificacao = dataPrimeiroSintoma;
 
         notification.setDataNotification(dataNotificacao);
+        notification.setDataPrimeiroSintoma(dataPrimeiroSintoma);
         notification.setIdNotification(dto.getNuNotific());
         notification.setIdAgravo(dto.getIdAgravo());
 
-        if(dto.getIdade() == null || dto.getIdade() == 0) {
-            
-            if(dto.getDtNasc() == null || dto.getDtNasc().isEmpty()) {
-                notification.setIdadePaciente(999); // Idade 999 para indicar que a idade é desconhecida    
+        // Idade: usa NU_IDADE_N se disponível; senão calcula a partir de DT_NASC + ano da notificação
+        if (dto.getIdade() == null || dto.getIdade() == 0) {
+            if (dto.getDtNasc() == null || dto.getDtNasc().isEmpty()) {
+                notification.setIdadePaciente(999); // desconhecida
             } else {
-                notification.setIdadePaciente(calcularIdadeNoAno(dto.getDtNasc(), extrairAno(dataNotificacao)));
+                int anoRef = extrairAno(dataPrimeiroSintoma != null ? dataPrimeiroSintoma : dataNotificacao);
+                int idade  = anoRef > 0 ? calcularIdadeNoAno(dto.getDtNasc(), anoRef) : 0;
+                notification.setIdadePaciente(Math.max(0, idade)); // ≥0; negativo = dados inconsistentes
             }
-
         } else {
             notification.setIdadePaciente(dto.getIdade());
         }
 
         notification.setClassificacao(dto.getClassiFin());
         notification.setSexo(dto.getCsSexo());
-        notification.setIdBairro(dto.getIdBairro() != null ? dto.getIdBairro() : 0);
-        notification.setNomeBairro(bairroService.normalizeToMainNeighborhood(dto.getNmBairro()));
-        notification.setEvolucao(dto.getEvolucao());
 
-        Date dataNascimento = StringToDateCSV.ConvertStringToDate(dto.getDtNasc());
-        
-        notification.setDataNascimento(dataNascimento);
-        
-        if (notification.getDataNotification() != null) {
-            notification.setSemanaEpidemiologica(calculateSemanaEpidemiologica(notification.getDataNotification()));
+        // Resolve bairro pelo nome → obtém nome normalizado e ID do banco automaticamente
+        Optional<Bairro> bairroResolvido = bairroService.resolveBairro(dto.getNmBairro());
+        notification.setNomeBairro(bairroResolvido.map(Bairro::getNome).orElse(null));
+        notification.setIdBairro(bairroResolvido
+            .map(b -> b.getId().intValue())
+            .orElse(dto.getIdBairro() != null ? dto.getIdBairro() : 0));
+
+        notification.setEvolucao(dto.getEvolucao());
+        notification.setDataNascimento(StringToDateCSV.ConvertStringToDate(dto.getDtNasc()));
+
+        // Semana epidemiológica calculada a partir dos primeiros sintomas
+        Date dataParaSemana = dataPrimeiroSintoma != null ? dataPrimeiroSintoma : dataNotificacao;
+        if (dataParaSemana != null) {
+            notification.setSemanaEpidemiologica(calculateSemanaEpidemiologica(dataParaSemana));
         }
-        
+
         return notification;
     }
 
@@ -324,6 +339,7 @@ public class NotificationService {
     private void syncErrorFromNotification(NotificationWithError e, Notification n) {
         e.setIdAgravo(n.getIdAgravo());
         e.setDataNotification(n.getDataNotification());
+        e.setDataPrimeiroSintoma(n.getDataPrimeiroSintoma());
         e.setDataNascimento(n.getDataNascimento());
         e.setClassificacao(n.getClassificacao());
         e.setSexo(n.getSexo());

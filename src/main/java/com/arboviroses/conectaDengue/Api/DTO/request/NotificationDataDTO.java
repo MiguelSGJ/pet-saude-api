@@ -14,7 +14,11 @@ public class NotificationDataDTO {
 
     private String idAgravo;
 
+    /** DT_NOTIFIC — data de registro/notificação do caso. */
     private String dtNotific;
+
+    /** DT_SIN_PRI — data de início dos primeiros sintomas. */
+    private String dtSinPri;
 
     private String dtNasc;
 
