@@ -84,11 +84,11 @@ public class ErrorsPdfReportService {
             subtitle.setSpacingAfter(12f);
             document.add(subtitle);
 
-            PdfPTable table = new PdfPTable(9);
+            PdfPTable table = new PdfPTable(8);
             table.setWidthPercentage(100f);
-            table.setWidths(new float[]{1.5f, 2f, 2f, 2.5f, 1.5f, 2.5f, 2f, 1.5f, 3f});
+            table.setWidths(new float[]{2f, 2f, 2.5f, 1.5f, 2.5f, 2f, 1.5f, 3f});
 
-            for (String h : new String[]{"ID", "Doença", "Data Notif.", "Bairro", "Sexo", "Classificação", "Evolução", "Sem. Epid.", "Problema"}) {
+            for (String h : new String[]{"Doença", "Data Notif.", "Bairro", "Sexo", "Classificação", "Evolução", "Sem. Epid.", "Problema"}) {
                 addHeaderCell(table, h, headerFont);
             }
 
@@ -96,7 +96,6 @@ public class ErrorsPdfReportService {
                 String agravo = r.getIdAgravo() != null
                     ? DOENCA_LABELS.getOrDefault(r.getIdAgravo(), r.getIdAgravo())
                     : "—";
-                addBodyCell(table, String.valueOf(r.getIdNotification()), bodyFont, Element.ALIGN_CENTER);
                 addBodyCell(table, agravo, bodyFont, Element.ALIGN_LEFT);
                 addBodyCell(table, r.getDataNotification() != null ? sdfLabel.format(r.getDataNotification()) : "—", bodyFont, Element.ALIGN_CENTER);
                 addBodyCell(table, r.getNomeBairro() != null ? r.getNomeBairro() : "—", bodyFont, Element.ALIGN_LEFT);

@@ -81,6 +81,12 @@ public class NotificationsErrorService {
             .filter(n -> startDate == null || (n.getDataNotification() != null && n.getDataNotification().getTime() >= startDate))
             .filter(n -> endDate == null || (n.getDataNotification() != null && n.getDataNotification().getTime() <= endDate))
             .filter(n -> idAgravo == null || idAgravo.isBlank() || idAgravo.equals(n.getIdAgravo()))
+            .sorted((a, b) -> {
+                if (a.getDataNotification() == null && b.getDataNotification() == null) return 0;
+                if (a.getDataNotification() == null) return 1;
+                if (b.getDataNotification() == null) return -1;
+                return b.getDataNotification().compareTo(a.getDataNotification());
+            })
             .collect(Collectors.toList());
     }
 
