@@ -1,6 +1,7 @@
 package com.arboviroses.conectaDengue.Domain.Filters;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,26 +25,23 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.servlet.http.HttpServletRequest;
 
 public class NotificationFilters {
+    private static final List<String> CONFIRMED_CLASSIFICATIONS = Arrays.asList("10", "11", "12");
+
     @PersistenceContext
     private EntityManager entityManager;
 
-    public static CountAgravoBySexoDTO filtersForNotificationsInfoBySexo(HttpServletRequest request, NotificationRepository notificationRepository) throws InvalidAgravoException {
+    public static Specification<Notification> buildDashboardSpecification(HttpServletRequest request) throws InvalidAgravoException {
         String agravoName = request.getParameter("agravo");
         String bairro = request.getParameter("bairro");
         Integer year = request.getParameter("year") != null ? Integer.valueOf(request.getParameter("year")) : null;
-        String agravoId = null;
+        String agravoId = resolveAgravoId(agravoName);
+        String scope = normalizeScope(request.getParameter("scope"));
 
-        if (agravoName != null && !agravoName.isEmpty()) {
-            agravoId = ConvertNameToIdAgravo.convert(agravoName);
-        }
-
-        final String finalAgravoId = agravoId;
-        
-        Specification<Notification> baseSpec = (root, query, criteriaBuilder) -> {
+        return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (finalAgravoId != null) {
-                predicates.add(criteriaBuilder.equal(root.get("idAgravo"), finalAgravoId));
+            if (agravoId != null) {
+                predicates.add(criteriaBuilder.equal(root.get("idAgravo"), agravoId));
             }
             if (bairro != null && !bairro.isEmpty()) {
                 predicates.add(criteriaBuilder.equal(root.get("nomeBairro"), bairro));
@@ -54,8 +52,13 @@ public class NotificationFilters {
                     root.<java.util.Date>get("dataPrimeiroSintoma")), year));
             }
 
+            applyScope(scope, predicates, root, criteriaBuilder);
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
+    }
+
+    public static CountAgravoBySexoDTO filtersForNotificationsInfoBySexo(HttpServletRequest request, NotificationRepository notificationRepository) throws InvalidAgravoException {
+        Specification<Notification> baseSpec = buildDashboardSpecification(request);
 
         Specification<Notification> specMasculino = baseSpec.and((root, query, criteriaBuilder) -> 
             criteriaBuilder.equal(root.get("sexo"), "M")
@@ -72,32 +75,12 @@ public class NotificationFilters {
     }
 
     public static List<AgravoCountBySemanaEpidemiologica> filtersForNotificationsInfoBySemanaEpidemiologica(HttpServletRequest request, NotificationRepository notificationRepository) throws InvalidAgravoException {
-        Integer ano = request.getParameter("year") != null ? Integer.valueOf(request.getParameter("year")) : null;
-        String agravoName = request.getParameter("agravo");
-        String bairro = request.getParameter("bairro");
+        Specification<Notification> baseSpec = buildDashboardSpecification(request);
         Integer semanaInicial = request.getParameter("semanaInicial") != null ? Integer.valueOf(request.getParameter("semanaInicial")) : null;
         Integer semanaFinal = request.getParameter("semanaFinal") != null ? Integer.valueOf(request.getParameter("semanaFinal")) : null;
-        String agravoId = null;
 
-        if (agravoName != null && !agravoName.isEmpty()) {
-            agravoId = ConvertNameToIdAgravo.convert(agravoName);
-        }
-
-        final String finalAgravoId = agravoId;
-        Specification<Notification> spec = (root, query, criteriaBuilder) -> {
+        Specification<Notification> rangeSpec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
-
-            if (finalAgravoId != null) {
-                predicates.add(criteriaBuilder.equal(root.get("idAgravo"), finalAgravoId));
-            }
-            if (ano != null) {
-                predicates.add(criteriaBuilder.equal(criteriaBuilder.function("date_part", Integer.class,
-                    criteriaBuilder.literal("year"),
-                    root.<java.util.Date>get("dataPrimeiroSintoma")), ano));
-            }
-            if (bairro != null && !bairro.isEmpty()) {
-                predicates.add(criteriaBuilder.equal(root.get("nomeBairro"), bairro));
-            }
             if (semanaInicial != null) {
                 predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("semanaEpidemiologica"), semanaInicial));
             }
@@ -108,6 +91,7 @@ public class NotificationFilters {
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
 
+        Specification<Notification> spec = baseSpec.and(rangeSpec);
         return notificationRepository.buscarContagemPorSemanaEpidemiologica(spec);
     }
 
@@ -117,11 +101,8 @@ public class NotificationFilters {
                 : null;
         String agravoName = request.getParameter("agravo");
         String bairro = request.getParameter("bairro");
-        String agravoId = null;
-
-        if (agravoName != null && !agravoName.isEmpty()) {
-            agravoId = ConvertNameToIdAgravo.convert(agravoName);
-        }
+        String agravoId = resolveAgravoId(agravoName);
+        String scope = normalizeScope(request.getParameter("scope"));
 
         List<String> ageBrackets = List.of(
             "age0to1", "age2to3", "age4to5", "age6to7", "age8to9",
@@ -163,6 +144,7 @@ public class NotificationFilters {
             jpql.append(" AND n.nomeBairro = :nomeBairro");
             parameters.put("nomeBairro", bairro);
         }
+        appendScopeClause(jpql, parameters, scope);
 
         var query = entityManager.createQuery(jpql.toString(), Tuple.class);
         parameters.forEach(query::setParameter);
@@ -191,100 +173,68 @@ public class NotificationFilters {
         HttpServletRequest request,
         NotificationRepository notificationRepository
     ) throws InvalidAgravoException {
-        Integer year = request.getParameter("year") != null ? Integer.valueOf(request.getParameter("year")) : null;
-        String agravoName = request.getParameter("agravo");
-        String bairro = request.getParameter("bairro");
-        String agravoId = null;
-
-        if (agravoName != null && !agravoName.isEmpty()) {
-            agravoId = ConvertNameToIdAgravo.convert(agravoName);
-        }
-
-        final String finalAgravoId = agravoId;
-        final String finalBairro = bairro;
-
-        Specification<Notification> spec = (root, query, criteriaBuilder) -> {
-            List<Predicate> predicates = new ArrayList<>();
-
-            if (finalAgravoId != null) {
-                predicates.add(criteriaBuilder.equal(root.get("idAgravo"), finalAgravoId));
-            }
-
-            if (year != null) {
-                predicates.add(criteriaBuilder.equal(
-                    criteriaBuilder.function("date_part", Integer.class,
-                        criteriaBuilder.literal("year"),
-                        root.<java.util.Date>get("dataPrimeiroSintoma")
-                    ),
-                    year
-                ));
-            }
-
-            if (finalBairro != null && !finalBairro.isEmpty()) {
-                predicates.add(criteriaBuilder.equal(root.get("nomeBairro"), finalBairro));
-            }
-
-            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
-        };
-
-        return notificationRepository.buscarContagemPorBairro(spec);
+        return notificationRepository.buscarContagemPorBairro(buildDashboardSpecification(request));
     }
 
     public static long filterForCountByIdAgravo(HttpServletRequest request, NotificationRepository notificationRepository) throws Exception {
-        String agravoName = request.getParameter("agravo");
-        String bairro = request.getParameter("bairro");
-        Integer year = request.getParameter("year") != null ? Integer.valueOf(request.getParameter("year")) : null;
+        return notificationRepository.count(buildDashboardSpecification(request));
+    }
 
-        String agravoId = ConvertNameToIdAgravo.convert(agravoName);
+    public static long filterForCountByEvolucao(HttpServletRequest request, NotificationRepository notificationRepository) throws Exception {
+        String evolucao = Optional.ofNullable(request.getParameter("evolucao"))
+                .orElseThrow(() -> new Exception("Informe o nivel da evolucao"));
 
-        Specification<Notification> spec = (root, query, criteriaBuilder) -> {
-            List<Predicate> predicates = new ArrayList<>();
-
-            predicates.add(criteriaBuilder.equal(root.get("idAgravo"), agravoId));
-
-            if (bairro != null && !bairro.isEmpty()) {
-                predicates.add(criteriaBuilder.equal(root.get("nomeBairro"), bairro));
-            }
-            if (year != null) {
-                predicates.add(criteriaBuilder.equal(criteriaBuilder.function("date_part", Integer.class,
-                    criteriaBuilder.literal("year"),
-                    root.<java.util.Date>get("dataPrimeiroSintoma")), year));
-            }
-
-            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
-        };
+        Specification<Notification> spec = buildDashboardSpecification(request)
+            .and((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("evolucao"), evolucao));
 
         return notificationRepository.count(spec);
     }
 
-    public static long filterForCountByEvolucao(HttpServletRequest request, NotificationRepository notificationRepository) throws Exception {
-        Integer year = request.getParameter("year") != null ? Integer.valueOf(request.getParameter("year")) : null;
-        String agravoName = request.getParameter("agravo");
-        String bairro = request.getParameter("bairro");
-        
-        String agravoId = ConvertNameToIdAgravo.convert(agravoName);
+    private static String resolveAgravoId(String agravoName) throws InvalidAgravoException {
+        if (agravoName == null || agravoName.isEmpty()) {
+            return null;
+        }
 
-        String evolucao = Optional.ofNullable(request.getParameter("evolucao"))
-                .orElseThrow(() -> new Exception("Informe o nivel da evolucao"));
+        return ConvertNameToIdAgravo.convert(agravoName);
+    }
 
-        Specification<Notification> spec = (root, query, criteriaBuilder) -> {
-            List<Predicate> predicates = new ArrayList<>();
+    private static String normalizeScope(String scope) {
+        if (scope == null || scope.isBlank()) {
+            return "notificados";
+        }
 
-            predicates.add(criteriaBuilder.equal(root.get("idAgravo"), agravoId));
-            predicates.add(criteriaBuilder.equal(root.get("evolucao"), evolucao));
-
-            if (bairro != null && !bairro.isEmpty()) {
-                predicates.add(criteriaBuilder.equal(root.get("nomeBairro"), bairro));
-            }
-            if (year != null) {
-                predicates.add(criteriaBuilder.equal(criteriaBuilder.function("date_part", Integer.class,
-                    criteriaBuilder.literal("year"),
-                    root.<java.util.Date>get("dataPrimeiroSintoma")), year));
-            }
-
-            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        return switch (scope.trim().toLowerCase()) {
+            case "confirmados", "obitos", "notificados" -> scope.trim().toLowerCase();
+            default -> "notificados";
         };
+    }
 
-        return notificationRepository.count(spec);
+    private static void applyScope(
+        String scope,
+        List<Predicate> predicates,
+        jakarta.persistence.criteria.Root<Notification> root,
+        jakarta.persistence.criteria.CriteriaBuilder criteriaBuilder
+    ) {
+        switch (scope) {
+            case "confirmados" -> predicates.add(root.get("classificacao").in(CONFIRMED_CLASSIFICATIONS));
+            case "obitos" -> predicates.add(criteriaBuilder.equal(root.get("evolucao"), "2"));
+            default -> {
+            }
+        }
+    }
+
+    private static void appendScopeClause(StringBuilder jpql, Map<String, Object> parameters, String scope) {
+        switch (scope) {
+            case "confirmados" -> {
+                jpql.append(" AND n.classificacao IN :confirmedClassifications");
+                parameters.put("confirmedClassifications", CONFIRMED_CLASSIFICATIONS);
+            }
+            case "obitos" -> {
+                jpql.append(" AND n.evolucao = :scopeEvolucao");
+                parameters.put("scopeEvolucao", "2");
+            }
+            default -> {
+            }
+        }
     }
 }

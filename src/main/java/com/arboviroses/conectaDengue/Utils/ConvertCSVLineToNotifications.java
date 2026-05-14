@@ -12,7 +12,7 @@ public class ConvertCSVLineToNotifications {
     public static Notification convertCsvLineToNotificationObject(String[] line, List<String> header)
     {   
         Date dataNascimento = StringToDateCSV.ConvertStringToDate(line[header.indexOf("DT_NASC")]);
-        Date dataNotification = StringToDateCSV.ConvertStringToDate(line[header.indexOf("DT_SIN_PRI")]);
+        Date dataNotification = extractNotificationDate(line, header);
         int epidemiologicalWeek = calculateEpidemiologicalWeek(dataNotification);
         int idade = extractIdade(header, line);
 
@@ -20,19 +20,20 @@ public class ConvertCSVLineToNotifications {
             idade = getYearsDifference(dataNascimento, dataNotification);
         }
 
-        return new Notification(
-            Long.valueOf(line[header.indexOf("NU_NOTIFIC")]),
-            line[header.indexOf("ID_AGRAVO")],
-            idade,
-            dataNotification,
-            dataNascimento,
-            line[header.indexOf("CLASSI_FIN")],
-            line[header.indexOf("CS_SEXO")],
-            line[header.indexOf("ID_BAIRRO")] != "" ? Integer.valueOf(line[header.indexOf("ID_BAIRRO")]) : 0,
-            line[header.indexOf("NM_BAIRRO")],
-            line[header.indexOf("EVOLUCAO")],
-            epidemiologicalWeek
-         );
+        Notification notification = new Notification();
+        notification.setIdNotification(Long.parseLong(line[header.indexOf("NU_NOTIFIC")]));
+        notification.setIdAgravo(line[header.indexOf("ID_AGRAVO")]);
+        notification.setIdadePaciente(idade);
+        notification.setDataNotification(dataNotification);
+        notification.setDataPrimeiroSintoma(dataNotification);
+        notification.setDataNascimento(dataNascimento);
+        notification.setClassificacao(line[header.indexOf("CLASSI_FIN")]);
+        notification.setSexo(line[header.indexOf("CS_SEXO")]);
+        notification.setIdBairro(parseIntOrZero(line[header.indexOf("ID_BAIRRO")]));
+        notification.setNomeBairro(line[header.indexOf("NM_BAIRRO")]);
+        notification.setEvolucao(line[header.indexOf("EVOLUCAO")]);
+        notification.setSemanaEpidemiologica(epidemiologicalWeek);
+        return notification;
     }
 
     public static int calculateEpidemiologicalWeek(Date date) {
@@ -65,6 +66,28 @@ public class ConvertCSVLineToNotifications {
         }
         
         return idade;
+    }
+
+    private static Date extractNotificationDate(String[] line, List<String> header) {
+        int sinPriIndex = header.indexOf("DT_SIN_PRI");
+        if (sinPriIndex >= 0) {
+            return StringToDateCSV.ConvertStringToDate(line[sinPriIndex]);
+        }
+
+        int notificIndex = header.indexOf("DT_NOTIFIC");
+        if (notificIndex >= 0) {
+            return StringToDateCSV.ConvertStringToDate(line[notificIndex]);
+        }
+
+        return null;
+    }
+
+    private static int parseIntOrZero(String value) {
+        if (value == null || value.isBlank()) {
+            return 0;
+        }
+
+        return Integer.parseInt(value);
     }
 
     private static int getYearsDifference(Date date1, Date date2) { 
