@@ -375,13 +375,10 @@ public class NotificationService {
 
     public Page<DataNotificationResponseDTO> getNotificationsByIdAgravoPaginated(Pageable pageable, HttpServletRequest request) throws InvalidAgravoException
     {
-        if (request.getParameter("agravo") == null) {
-            return getAllNotificationsPaginated(pageable);
-        }
-        
-        String agravo = ConvertNameToIdAgravo.convert(request.getParameter("agravo"));
-
-        Page<Notification> notifications = notificationRepository.findByIdAgravo(pageable, agravo);
+        Page<Notification> notifications = notificationRepository.findAll(
+            NotificationFilters.buildDashboardSpecification(request),
+            pageable
+        );
         return notifications.map(DataNotificationResponseDTO::new);
     }
 
