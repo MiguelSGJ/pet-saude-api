@@ -52,7 +52,8 @@ public class NeighborhoodWeeklyPdfReportService {
         int maxAvailableWeek = notificationRepository.buscarMaiorSemanaEpidemiologica(
             filters.agravoId(),
             filters.year(),
-            filters.bairro()
+            filters.bairro(),
+            filters.scope()
         );
 
         if (maxAvailableWeek == 0) {
@@ -77,7 +78,7 @@ public class NeighborhoodWeeklyPdfReportService {
             agravoId = ConvertNameToIdAgravo.convert(reportRequest.getAgravo());
         }
 
-        return new ReportFilters(agravoId, reportRequest.getYear(), reportRequest.getBairro());
+        return new ReportFilters(agravoId, reportRequest.getYear(), reportRequest.getBairro(), normalizeScope(reportRequest.getScope()));
     }
 
     private List<NeighborhoodWeeklyRow> buildNeighborhoodWeeklyRows(ReportFilters filters, int semanaInicial, int semanaFinal) {
@@ -85,6 +86,7 @@ public class NeighborhoodWeeklyPdfReportService {
             filters.agravoId(),
             filters.year(),
             filters.bairro(),
+            filters.scope(),
             semanaInicial,
             semanaFinal
         );
@@ -185,8 +187,28 @@ public class NeighborhoodWeeklyPdfReportService {
         if (filters.bairro() != null && !filters.bairro().isBlank()) {
             details.add("Bairro " + filters.bairro());
         }
+        details.add("Escopo " + buildScopeLabel(filters.scope()));
 
         return String.join(" | ", details);
+    }
+
+    private String normalizeScope(String scope) {
+        if (scope == null || scope.isBlank()) {
+            return "notificados";
+        }
+
+        return switch (scope.trim().toLowerCase()) {
+            case "confirmados", "obitos", "notificados" -> scope.trim().toLowerCase();
+            default -> "notificados";
+        };
+    }
+
+    private String buildScopeLabel(String scope) {
+        return switch (scope) {
+            case "confirmados" -> "Casos confirmados";
+            case "obitos" -> "Obitos";
+            default -> "Dados notificados";
+        };
     }
 
     private void addHeaderCell(PdfPTable table, String value, Font font) {
@@ -227,7 +249,7 @@ public class NeighborhoodWeeklyPdfReportService {
         return widths;
     }
 
-    private record ReportFilters(String agravoId, Integer year, String bairro) {
+    private record ReportFilters(String agravoId, Integer year, String bairro, String scope) {
     }
 
     private static final class NeighborhoodWeeklyRow {

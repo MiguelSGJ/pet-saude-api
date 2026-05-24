@@ -13,4 +13,5 @@ public class NeighborhoodWeeklyPdfReportRequest {
     private Integer year;
     private String agravo;
     private String bairro;
+    private String scope;
 }
