@@ -212,10 +212,11 @@ public class NotificationController
         @RequestParam(required = false) Integer semanaInicial,
         @RequestParam(required = false) Integer year,
         @RequestParam(required = false) String agravo,
-        @RequestParam(required = false) String bairro
+        @RequestParam(required = false) String bairro,
+        @RequestParam(required = false) String scope
     ) throws InvalidAgravoException {
         NeighborhoodWeeklyPdfReportRequest reportRequest =
-            new NeighborhoodWeeklyPdfReportRequest(semanaInicial, semanaFinal, year, agravo, bairro);
+            new NeighborhoodWeeklyPdfReportRequest(semanaInicial, semanaFinal, year, agravo, bairro, scope);
 
         byte[] pdf = neighborhoodWeeklyPdfReportService.generateReport(reportRequest);
 

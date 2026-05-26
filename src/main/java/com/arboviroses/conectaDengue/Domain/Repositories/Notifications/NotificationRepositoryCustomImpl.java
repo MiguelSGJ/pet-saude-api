@@ -93,25 +93,32 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
     }
 
     @Override
-    public Integer buscarMaiorSemanaEpidemiologica(String agravoId, Integer year, String bairro) {
+    public Integer buscarMaiorSemanaEpidemiologica(String agravoId, Integer year, String bairro, String scope) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Integer> query = cb.createQuery(Integer.class);
         Root<Notification> root = query.from(Notification.class);
 
         query.select(cb.coalesce(cb.max(root.get("semanaEpidemiologica")), 0));
-        query.where(buildReportPredicates(cb, root, agravoId, year, bairro).toArray(new Predicate[0]));
+        query.where(buildReportPredicates(cb, root, agravoId, year, bairro, scope).toArray(new Predicate[0]));
 
         Integer result = entityManager.createQuery(query).getSingleResult();
         return result == null ? 0 : result;
     }
 
     @Override
-    public List<NeighborhoodWeeklyCountRow> buscarContagemSemanalPorBairro(String agravoId, Integer year, String bairro, Integer semanaInicial, Integer semanaFinal) {
+    public List<NeighborhoodWeeklyCountRow> buscarContagemSemanalPorBairro(
+        String agravoId,
+        Integer year,
+        String bairro,
+        String scope,
+        Integer semanaInicial,
+        Integer semanaFinal
+    ) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<NeighborhoodWeeklyCountRow> query = cb.createQuery(NeighborhoodWeeklyCountRow.class);
         Root<Notification> root = query.from(Notification.class);
 
-        List<Predicate> predicates = buildReportPredicates(cb, root, agravoId, year, bairro);
+        List<Predicate> predicates = buildReportPredicates(cb, root, agravoId, year, bairro, scope);
         if (semanaInicial != null) {
             predicates.add(cb.greaterThanOrEqualTo(root.get("semanaEpidemiologica"), semanaInicial));
         }
@@ -137,7 +144,8 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
         Root<Notification> root,
         String agravoId,
         Integer year,
-        String bairro
+        String bairro,
+        String scope
     ) {
         List<Predicate> predicates = new ArrayList<>();
         predicates.add(cb.isNotNull(root.get("nomeBairro")));
@@ -155,6 +163,12 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
 
         if (bairro != null && !bairro.isBlank()) {
             predicates.add(cb.equal(root.get("nomeBairro"), bairro));
+        }
+
+        if ("confirmados".equalsIgnoreCase(scope)) {
+            predicates.add(root.get("classificacao").in(List.of("10", "11", "12")));
+        } else if ("obitos".equalsIgnoreCase(scope)) {
+            predicates.add(cb.equal(root.get("evolucao"), "2"));
         }
 
         return predicates;
