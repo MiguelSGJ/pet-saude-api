@@ -34,6 +34,9 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Query("SELECT MAX(n.dataPrimeiroSintoma) FROM Notification n")
     Optional<Date> findMaxDate();
 
+    @Query("SELECT MIN(FUNCTION('date_part', 'year', n.dataPrimeiroSintoma)) FROM Notification n WHERE n.dataPrimeiroSintoma IS NOT NULL")
+    Optional<Integer> findMinYear();
+
     @Query("SELECT MAX(n.dataPrimeiroSintoma) FROM Notification n WHERE n.idAgravo = :idAgravo")
     Optional<Date> findMaxDateByAgravo(@Param("idAgravo") String idAgravo);
 

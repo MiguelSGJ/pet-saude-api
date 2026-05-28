@@ -35,6 +35,7 @@ public class NotificationFilters {
         String bairro = request.getParameter("bairro");
         Integer year = request.getParameter("year") != null ? Integer.valueOf(request.getParameter("year")) : null;
         String agravoId = resolveAgravoId(agravoName);
+        Optional<List<String>> classificacaoFilter = resolveClassificacaoFilter(agravoName);
         String scope = normalizeScope(request.getParameter("scope"));
 
         return (root, query, criteriaBuilder) -> {
@@ -43,6 +44,9 @@ public class NotificationFilters {
             if (agravoId != null) {
                 predicates.add(criteriaBuilder.equal(root.get("idAgravo"), agravoId));
             }
+            classificacaoFilter.ifPresent(classes ->
+                predicates.add(root.get("classificacao").in(classes))
+            );
             if (bairro != null && !bairro.isEmpty()) {
                 predicates.add(criteriaBuilder.equal(root.get("nomeBairro"), bairro));
             }
@@ -136,6 +140,11 @@ public class NotificationFilters {
             jpql.append(" AND n.idAgravo = :idAgravo");
             parameters.put("idAgravo", agravoId);
         }
+        Optional<List<String>> classificacaoFilter = resolveClassificacaoFilter(agravoName);
+        if (classificacaoFilter.isPresent()) {
+            jpql.append(" AND n.classificacao IN :classificacoes");
+            parameters.put("classificacoes", classificacaoFilter.get());
+        }
         if (year != null) {
             jpql.append(" AND FUNCTION('date_part', 'year', n.dataPrimeiroSintoma) = :year");
             parameters.put("year", year.doubleValue());
@@ -196,6 +205,17 @@ public class NotificationFilters {
         }
 
         return ConvertNameToIdAgravo.convert(agravoName);
+    }
+
+    public static Optional<List<String>> resolveClassificacaoFilter(String agravoName) {
+        if (agravoName == null || agravoName.isBlank()) return Optional.empty();
+        return switch (agravoName.trim().toLowerCase()) {
+            case "dengue_geral"     -> Optional.of(List.of("10", "11", "12", "13"));
+            case "dengue_classica"  -> Optional.of(List.of("10"));
+            case "dengue_alarmante" -> Optional.of(List.of("11"));
+            case "dengue_grave"     -> Optional.of(List.of("12"));
+            default                 -> Optional.empty();
+        };
     }
 
     private static String normalizeScope(String scope) {
