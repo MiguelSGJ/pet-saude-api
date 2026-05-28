@@ -93,13 +93,13 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
     }
 
     @Override
-    public Integer buscarMaiorSemanaEpidemiologica(String agravoId, Integer year, String bairro, String scope) {
+    public Integer buscarMaiorSemanaEpidemiologica(String agravoId, Integer year, String bairro, String scope, List<String> classificacaoFilter) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Integer> query = cb.createQuery(Integer.class);
         Root<Notification> root = query.from(Notification.class);
 
         query.select(cb.coalesce(cb.max(root.get("semanaEpidemiologica")), 0));
-        query.where(buildReportPredicates(cb, root, agravoId, year, bairro, scope).toArray(new Predicate[0]));
+        query.where(buildReportPredicates(cb, root, agravoId, year, bairro, scope, classificacaoFilter).toArray(new Predicate[0]));
 
         Integer result = entityManager.createQuery(query).getSingleResult();
         return result == null ? 0 : result;
@@ -112,13 +112,14 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
         String bairro,
         String scope,
         Integer semanaInicial,
-        Integer semanaFinal
+        Integer semanaFinal,
+        List<String> classificacaoFilter
     ) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<NeighborhoodWeeklyCountRow> query = cb.createQuery(NeighborhoodWeeklyCountRow.class);
         Root<Notification> root = query.from(Notification.class);
 
-        List<Predicate> predicates = buildReportPredicates(cb, root, agravoId, year, bairro, scope);
+        List<Predicate> predicates = buildReportPredicates(cb, root, agravoId, year, bairro, scope, classificacaoFilter);
         if (semanaInicial != null) {
             predicates.add(cb.greaterThanOrEqualTo(root.get("semanaEpidemiologica"), semanaInicial));
         }
@@ -145,13 +146,18 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
         String agravoId,
         Integer year,
         String bairro,
-        String scope
+        String scope,
+        List<String> classificacaoFilter
     ) {
         List<Predicate> predicates = new ArrayList<>();
         predicates.add(cb.isNotNull(root.get("nomeBairro")));
 
         if (agravoId != null && !agravoId.isBlank()) {
             predicates.add(cb.equal(root.get("idAgravo"), agravoId));
+        }
+
+        if (classificacaoFilter != null && !classificacaoFilter.isEmpty()) {
+            predicates.add(root.get("classificacao").in(classificacaoFilter));
         }
 
         if (year != null) {

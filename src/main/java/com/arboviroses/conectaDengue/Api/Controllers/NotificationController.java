@@ -184,6 +184,11 @@ public class NotificationController
         return ResponseEntity.ok().body(SuccessResponseDTO.setResponse(notificationService.getLatestDatesByDisease(), null));
     }
 
+    @GetMapping("/notifications/min-year")
+    public ResponseEntity<SuccessResponseDTO<Integer>> getMinYear() {
+        return ResponseEntity.ok().body(SuccessResponseDTO.setResponse(notificationService.getMinYear(), null));
+    }
+
     @GetMapping("/notifications/count/evolucao")
     public ResponseEntity<SuccessResponseDTO<Long>> getEvolucao(HttpServletRequest request) throws Exception {
         return ResponseEntity.ok().body(SuccessResponseDTO.setResponse(notificationService.countByEvolucao(request), null));

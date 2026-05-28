@@ -9,13 +9,17 @@ public class ConvertNameToIdAgravo {
                 agravo = "A92.0";
                 break;
             case "DENGUE":
+            case "DENGUE_GERAL":
+            case "DENGUE_CLASSICA":
+            case "DENGUE_ALARMANTE":
+            case "DENGUE_GRAVE":
                 agravo = "A90";
                 break;
             case "ZIKA":
                 agravo = "A928";
                 break;
-            default: 
-                throw new InvalidAgravoException("Valor inválido: " + agravo + ". valores aceitos: zika, dengue, chikungunya");
+            default:
+                throw new InvalidAgravoException("Valor inválido: " + agravo + ". Valores aceitos: zika, dengue, dengue_geral, dengue_classica, dengue_alarmante, dengue_grave, chikungunya");
         }
 
         return agravo;

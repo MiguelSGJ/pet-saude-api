@@ -357,6 +357,10 @@ public class NotificationService {
             .orElse(null);
     }
 
+    public Integer getMinYear() {
+        return notificationRepository.findMinYear().orElse(null);
+    }
+
     public Map<String, String> getLatestDatesByDisease() {
         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
         Map<String, String> result = new java.util.LinkedHashMap<>();

@@ -6,12 +6,14 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
 import com.arboviroses.conectaDengue.Api.DTO.request.NeighborhoodWeeklyPdfReportRequest;
 import com.arboviroses.conectaDengue.Api.Exceptions.InvalidAgravoException;
 import com.arboviroses.conectaDengue.Api.Exceptions.InvalidNeighborhoodWeeklyReportException;
+import com.arboviroses.conectaDengue.Domain.Filters.NotificationFilters;
 import com.arboviroses.conectaDengue.Domain.Repositories.Notifications.NotificationRepository;
 import com.arboviroses.conectaDengue.Domain.Repositories.Notifications.NotificationRepositoryCustom.NeighborhoodWeeklyCountRow;
 import com.arboviroses.conectaDengue.Domain.Services.Bairros.BairroService;
@@ -53,7 +55,8 @@ public class NeighborhoodWeeklyPdfReportService {
             filters.agravoId(),
             filters.year(),
             filters.bairro(),
-            filters.scope()
+            filters.scope(),
+            filters.classificacaoFilter()
         );
 
         if (maxAvailableWeek == 0) {
@@ -71,14 +74,29 @@ public class NeighborhoodWeeklyPdfReportService {
         return createNeighborhoodWeeklyPdf(reportRows, semanaInicial, reportRequest.getSemanaFinal(), filters);
     }
 
+    private static final Map<String, String> AGRAVO_LABELS = Map.of(
+        "dengue",           "Dengue",
+        "dengue_geral",     "Dengue (Geral)",
+        "dengue_classica",  "Dengue Clássica",
+        "dengue_alarmante", "Dengue Alarmante",
+        "dengue_grave",     "Dengue Grave",
+        "zika",             "Zika",
+        "chikungunya",      "Chikungunya"
+    );
+
     private ReportFilters extractReportFilters(NeighborhoodWeeklyPdfReportRequest reportRequest) throws InvalidAgravoException {
         String agravoId = null;
+        String agravoLabel = null;
+        List<String> classificacaoFilter = null;
 
         if (reportRequest.getAgravo() != null && !reportRequest.getAgravo().isBlank()) {
             agravoId = ConvertNameToIdAgravo.convert(reportRequest.getAgravo());
+            agravoLabel = AGRAVO_LABELS.getOrDefault(reportRequest.getAgravo().toLowerCase(), reportRequest.getAgravo());
+            Optional<List<String>> cf = NotificationFilters.resolveClassificacaoFilter(reportRequest.getAgravo());
+            classificacaoFilter = cf.orElse(null);
         }
 
-        return new ReportFilters(agravoId, reportRequest.getYear(), reportRequest.getBairro(), normalizeScope(reportRequest.getScope()));
+        return new ReportFilters(agravoId, agravoLabel, reportRequest.getYear(), reportRequest.getBairro(), normalizeScope(reportRequest.getScope()), classificacaoFilter);
     }
 
     private List<NeighborhoodWeeklyRow> buildNeighborhoodWeeklyRows(ReportFilters filters, int semanaInicial, int semanaFinal) {
@@ -88,7 +106,8 @@ public class NeighborhoodWeeklyPdfReportService {
             filters.bairro(),
             filters.scope(),
             semanaInicial,
-            semanaFinal
+            semanaFinal,
+            filters.classificacaoFilter()
         );
         Map<String, NeighborhoodWeeklyRow> rowsByNeighborhood = initializeRows(filters, semanaInicial, semanaFinal);
 
@@ -181,8 +200,8 @@ public class NeighborhoodWeeklyPdfReportService {
         if (filters.year() != null) {
             details.add("Ano " + filters.year());
         }
-        if (filters.agravoId() != null) {
-            details.add("Agravo " + filters.agravoId());
+        if (filters.agravoLabel() != null) {
+            details.add("Agravo " + filters.agravoLabel());
         }
         if (filters.bairro() != null && !filters.bairro().isBlank()) {
             details.add("Bairro " + filters.bairro());
@@ -249,7 +268,7 @@ public class NeighborhoodWeeklyPdfReportService {
         return widths;
     }
 
-    private record ReportFilters(String agravoId, Integer year, String bairro, String scope) {
+    private record ReportFilters(String agravoId, String agravoLabel, Integer year, String bairro, String scope, List<String> classificacaoFilter) {
     }
 
     private static final class NeighborhoodWeeklyRow {
