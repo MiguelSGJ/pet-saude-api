@@ -105,7 +105,7 @@ public class XlsxNotificationReader {
             case STRING -> cell.getStringCellValue();
             case NUMERIC -> DateUtil.isCellDateFormatted(cell)
                     ? new SimpleDateFormat("dd/MM/yyyy").format(cell.getDateCellValue())
-                    : String.valueOf(cell.getNumericCellValue());
+                    : formatNumeric(cell.getNumericCellValue());
             case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
             case FORMULA -> {
                 CellValue cv = evaluator.evaluate(cell);
@@ -113,13 +113,17 @@ public class XlsxNotificationReader {
                     case STRING -> cv.getStringValue();
                     case NUMERIC -> DateUtil.isCellDateFormatted(cell)
                             ? new SimpleDateFormat("dd/MM/yyyy").format(cell.getDateCellValue())
-                            : String.valueOf(cv.getNumberValue());
+                            : formatNumeric(cv.getNumberValue());
                     case BOOLEAN -> String.valueOf(cv.getBooleanValue());
                     default -> "";
                 };
             }
             default -> "";
         };
+    }
+
+    private static String formatNumeric(double value) {
+        return value == Math.floor(value) ? String.valueOf((long) value) : String.valueOf(value);
     }
 
     private static int parseIdadeSinan(String v) {

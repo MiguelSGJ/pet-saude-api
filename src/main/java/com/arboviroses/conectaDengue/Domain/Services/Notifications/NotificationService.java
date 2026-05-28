@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -27,6 +28,7 @@ import com.arboviroses.conectaDengue.Utils.StringToDateCSV;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import com.arboviroses.conectaDengue.Api.DTO.request.NotificationBatchDTO;
 import com.arboviroses.conectaDengue.Api.DTO.request.NotificationDataDTO;
 import com.arboviroses.conectaDengue.Api.DTO.response.AgravoCountByAgeRange;
@@ -97,6 +99,7 @@ public class NotificationService {
         return saveNotificationsFromBatch(new NotificationBatchDTO(dtos));
     }
 
+    @Transactional
     public SaveCsvResponseDTO saveNotificationsFromBatch(NotificationBatchDTO notificationBatchDTO) {
         List<Notification> notifications = new ArrayList<>();
         List<NotificationWithError> notificationsWithError = new ArrayList<>();
@@ -133,21 +136,17 @@ public class NotificationService {
         }
 
         if (!notifications.isEmpty()) {
-            Set<Long> batchIds = notifications.stream()
-                .map(Notification::getIdNotification)
+            Set<Date> batchDates = notifications.stream()
+                .map(Notification::getDataNotification)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-            Set<Long> existingIds = notificationRepository.findAllById(batchIds).stream()
-                .map(Notification::getIdNotification)
-                .collect(Collectors.toCollection(HashSet::new));
-
-            List<Notification> toInsert = notifications.stream()
-                .filter(n -> !existingIds.contains(n.getIdNotification()))
-                .collect(Collectors.toList());
-
-            if (!toInsert.isEmpty()) {
-                notificationRepository.saveAll(toInsert);
+            if (!batchDates.isEmpty()) {
+                notificationRepository.deleteByDataNotificationIn(batchDates);
+                notificationsErrorService.deleteByDataNotification(batchDates);
             }
+
+            notificationRepository.saveAll(notifications);
         }
         
         if (!notificationsWithError.isEmpty()) {

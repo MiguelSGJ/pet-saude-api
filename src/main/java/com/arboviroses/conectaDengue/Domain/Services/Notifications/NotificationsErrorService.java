@@ -1,5 +1,7 @@
 package com.arboviroses.conectaDengue.Domain.Services.Notifications;
 
+import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -47,8 +49,7 @@ public class NotificationsErrorService {
     public boolean notificationHasError(Notification notification) {
         return (
             notification.getIdAgravo() == null ||
-            // Exige ao menos uma das duas datas
-            (notification.getDataNotification() == null && notification.getDataPrimeiroSintoma() == null) ||
+            (notification.getDataNotification() == null || notification.getDataPrimeiroSintoma() == null) ||
             notification.getClassificacao() == null ||
             // Idade 999 = não foi possível calcular (sem NU_IDADE_N nem DT_NASC)
             notification.getIdadePaciente() == 999 ||
@@ -63,11 +64,15 @@ public class NotificationsErrorService {
         notificationWithErrorRepository.deleteById(id);
     }
 
+    public void deleteByDataNotification(Collection<Date> dates) {
+        notificationWithErrorRepository.deleteByDataNotificationIn(dates);
+    }
+
     public String categorizeError(NotificationWithError n) {
         if (n.getIdAgravo() == null || n.getIdAgravo().isBlank()) return "DOENCA_NAO_INFORMADA";
         if (n.getNomeBairro() == null || n.getNomeBairro().isBlank()) return "BAIRRO_FALTANDO";
         if (n.getClassificacao() == null || n.getClassificacao().isBlank()) return "CLASSIFICACAO_FALTANDO";
-        if (n.getDataNotification() == null && n.getDataPrimeiroSintoma() == null) return "DATA_FALTANDO";
+        if (n.getDataNotification() == null || n.getDataPrimeiroSintoma() == null) return "DATA_FALTANDO";
         if (n.getSexo() == null || n.getSexo().isBlank()) return "SEXO_NAO_INFORMADO";
         if (n.getEvolucao() == null || n.getEvolucao().isBlank()) return "EVOLUCAO_NAO_INFORMADA";
         if (n.getIdadePaciente() == 999) return "DATA_NASCIMENTO_FALTANDO";
