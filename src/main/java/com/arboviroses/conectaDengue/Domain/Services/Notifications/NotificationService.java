@@ -25,6 +25,8 @@ import com.arboviroses.conectaDengue.Domain.Entities.Notification.NotificationWi
 import com.arboviroses.conectaDengue.Utils.ConvertNameToIdAgravo;
 import com.arboviroses.conectaDengue.Utils.StringToDateCSV;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -99,6 +101,7 @@ public class NotificationService {
         return saveNotificationsFromBatch(new NotificationBatchDTO(dtos));
     }
 
+    @CacheEvict(value = "minYear", allEntries = true)
     @Transactional
     public SaveCsvResponseDTO saveNotificationsFromBatch(NotificationBatchDTO notificationBatchDTO) {
         List<Notification> notifications = new ArrayList<>();
@@ -357,6 +360,7 @@ public class NotificationService {
             .orElse(null);
     }
 
+    @Cacheable("minYear")
     public Integer getMinYear() {
         return notificationRepository.findMinYear().orElse(null);
     }
