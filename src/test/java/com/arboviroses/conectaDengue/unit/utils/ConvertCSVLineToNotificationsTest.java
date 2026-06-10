@@ -35,7 +35,7 @@ public class ConvertCSVLineToNotificationsTest {
 
         // assert
         Assertions.assertThat(notification).isNotNull();
-        assertEquals(500, notification.getIdNotification());
+        assertEquals(500L, notification.getIdNotification());
         assertEquals("A90", notification.getIdAgravo());
         assertEquals("Tue Oct 10 00:00:00 BRT 2006", notification.getDataNascimento().toString());
         assertEquals("Tue Oct 10 00:00:00 BRT 2006", notification.getDataNotification().toString());

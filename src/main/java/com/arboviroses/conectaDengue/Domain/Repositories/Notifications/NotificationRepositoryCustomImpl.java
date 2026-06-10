@@ -172,7 +172,7 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
         }
 
         if ("confirmados".equalsIgnoreCase(scope)) {
-            predicates.add(root.get("classificacao").in(List.of("10", "11", "12")));
+            predicates.add(root.get("classificacao").in(List.of("10", "11", "12", "13")));
         } else if ("obitos".equalsIgnoreCase(scope)) {
             predicates.add(cb.equal(root.get("evolucao"), "2"));
         }

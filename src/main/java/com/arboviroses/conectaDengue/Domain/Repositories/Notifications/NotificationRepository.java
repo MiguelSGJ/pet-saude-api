@@ -28,9 +28,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         """)
     List<Notification> findByYearAndIdAgravo(int year, String idAgravo);
 
-    @Query("SELECT COALESCE(MAX(n.idNotification), 0) FROM Notification n")
-    Optional<Long> findMaxId();
-
     @Query("SELECT MAX(n.dataPrimeiroSintoma) FROM Notification n")
     Optional<Date> findMaxDate();
 
