@@ -49,12 +49,13 @@ O sistema completo pode ser executado com Docker Compose a partir deste reposit�
 - backend Spring Boot
 - API Python FastAPI
 - PostgreSQL
+- DbGate para gerenciar o banco pelo navegador
 
 ### Pré-requisitos
 
 - Docker
 - Docker Compose
-- As pastas irmãs `../ArbovirosesFront` e `../Arboviroses-python` presentes no mesmo diretório pai deste projeto
+- As pastas irmãs `../ArbovirosesFront` e `../ArbovirosesPython` presentes no mesmo diretório pai deste projeto
 
 ### Como subir
 
@@ -62,10 +63,65 @@ O sistema completo pode ser executado com Docker Compose a partir deste reposit�
 2. Execute:
 
 ```bash
-docker compose --env-file .env.docker up --build
+docker compose --env-file .env.docker up -d --build --remove-orphans
 ```
 
 3. A aplicação ficará disponível em `http://localhost:8080` por padrão.
+
+Esse comando tambem pode ser usado para atualizar o ambiente: se os containers ja existirem, o Docker Compose recria o que mudou; se nao existirem, ele cria e sobe tudo.
+
+### Gerenciador do banco de dados
+
+O projeto sobe o DbGate junto com os containers. Ele fica disponivel por padrao em:
+
+```text
+http://localhost:8082
+```
+
+Para acessar o PostgreSQL no DbGate, crie uma conexao usando:
+
+```text
+Server type: PostgreSQL
+Server: db
+Port: 5432
+User: postgres
+Password: postgres
+Database: arboviroses_db
+```
+
+O campo `Server` deve ser `db` porque o DbGate roda dentro da mesma rede do Docker Compose. Use `localhost` apenas para ferramentas instaladas diretamente no Windows.
+
+A porta do DbGate pode ser alterada em `.env.docker`:
+
+```env
+DBGATE_PORT=8082
+```
+
+Tambem e possivel acessar o banco pelo terminal:
+
+```bash
+docker exec -it arboviroses-db psql -U postgres -d arboviroses_db
+```
+
+Se o DbGate mostrar o erro `password authentication failed for user "postgres"`, provavelmente o volume do PostgreSQL ja foi criado com uma senha antiga. Alterar `POSTGRES_PASSWORD` no `.env.docker` nao muda a senha interna automaticamente.
+
+Para ajustar a senha real do usuario `postgres` para `postgres`, execute:
+
+```bash
+docker compose --env-file .env.docker exec -T db psql -U postgres -d arboviroses_db -c "ALTER USER postgres WITH PASSWORD 'postgres';"
+```
+
+Se preferir fazer manualmente, entre no `psql`:
+
+```bash
+docker exec -it arboviroses-db psql -U postgres -d arboviroses_db
+```
+
+E execute:
+
+```sql
+ALTER USER postgres WITH PASSWORD 'postgres';
+```
 
 ### O que mudar para producao
 
@@ -73,6 +129,7 @@ Os links publicos ficaram centralizados em `.env.docker`:
 
 - `PUBLIC_ORIGIN`: URL publica da aplicacao
 - `PUBLIC_PORT`: porta publicada pelo container do frontend
+- `DBGATE_PORT`: porta publica do DbGate
 - `SECURITY_CORS_ALLOWED_ORIGINS`: origens permitidas pelo backend
 - `REACT_APP_API_URL`: URL da API Java consumida pelo frontend
 - `REACT_APP_PYTHON_API_URL`: URL da API Python consumida pelo frontend
@@ -89,6 +146,7 @@ Exemplo de ajuste para producao em um dominio real:
 ```env
 PUBLIC_ORIGIN=https://app.seudominio.com
 PUBLIC_PORT=80
+DBGATE_PORT=8082
 SECURITY_CORS_ALLOWED_ORIGINS=https://app.seudominio.com
 REACT_APP_API_URL=/api
 REACT_APP_PYTHON_API_URL=/python-api
@@ -111,9 +169,10 @@ docker compose down -v
 - Frontend/Nginx: `${PUBLIC_ORIGIN}`
 - Backend via proxy: `${PUBLIC_ORIGIN}/api`
 - API Python via proxy: `${PUBLIC_ORIGIN}/python-api`
+- DbGate: `http://localhost:${DBGATE_PORT}`
 
 ### Observações
 
-- O `docker-compose.yml` deste repositório usa `../ArbovirosesFront` e `../Arboviroses-python` como contextos de build.
+- O `docker-compose.yml` deste repositório usa `../ArbovirosesFront` e `../ArbovirosesPython` como contextos de build.
 - Em produção, troque pelo menos `POSTGRES_PASSWORD` e `SECURITY_JWT_SECRET_KEY`.
 - O frontend foi configurado para consumir as APIs via proxy do Nginx, evitando dependência de URLs externas hardcoded.

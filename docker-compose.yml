@@ -1,3 +1,5 @@
+name: arboviroses
+
 services:
   db:
     image: postgres:16-alpine
@@ -15,9 +17,20 @@ services:
       retries: 10
     restart: unless-stopped
 
+  dbgate:
+    image: dbgate/dbgate:latest
+    container_name: arboviroses-dbgate
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${DBGATE_PORT:-8082}:3000"
+    restart: unless-stopped
+
   backend:
     build:
       context: .
+      dockerfile: Dockerfile
     container_name: arboviroses-backend
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-arboviroses_db}
@@ -25,9 +38,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-update}
       SECURITY_CORS_ALLOWED_ORIGINS: ${SECURITY_CORS_ALLOWED_ORIGINS:-http://localhost:8080}
-      SECURITY_JWT_SECRET_KEY: ${SECURITY_JWT_SECRET_KEY:-38d825205cb4b0f7c9fd0f507b9102daa2c8b4afbf3cfc91d6eb9b7844c59fbd}
-      SECURITY_JWT_EXPIRATION_TIME: ${SECURITY_JWT_EXPIRATION_TIME:-3600}
-      SECURITY_JWT_REFRESH_TOKEN_EXPIRATION_TIME: ${SECURITY_JWT_REFRESH_TOKEN_EXPIRATION_TIME:-3600000}
+      SECURITY_JWT_SECRET_KEY: ${SECURITY_JWT_SECRET_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
+      SECURITY_JWT_EXPIRATION_TIME: ${SECURITY_JWT_EXPIRATION_TIME:-3600000}
+      SECURITY_JWT_REFRESH_TOKEN_EXPIRATION_TIME: ${SECURITY_JWT_REFRESH_TOKEN_EXPIRATION_TIME:-86400000}
       SEED_USER_NAME: ${SEED_USER_NAME:-admin}
       SEED_USER_CPF: ${SEED_USER_CPF:-12345678910}
       SEED_USER_PASSWORD: ${SEED_USER_PASSWORD:-admin}
@@ -38,13 +51,15 @@ services:
 
   python-api:
     build:
-      context: ../Arboviroses-python
+      context: ../ArbovirosesPython
+      dockerfile: Dockerfile
     container_name: arboviroses-python-api
     restart: unless-stopped
 
   frontend:
     build:
       context: ../ArbovirosesFront
+      dockerfile: Dockerfile
       args:
         REACT_APP_API_URL: ${REACT_APP_API_URL:-/api}
         REACT_APP_PYTHON_API_URL: ${REACT_APP_PYTHON_API_URL:-/python-api}
