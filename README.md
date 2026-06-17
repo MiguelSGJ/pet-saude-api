@@ -72,7 +72,21 @@ Esse comando tambem pode ser usado para atualizar o ambiente: se os containers j
 
 ### Gerenciador do banco de dados
 
-O projeto sobe o DbGate junto com os containers. Ele fica disponivel por padrao em:
+O projeto sobe o DbGate junto com os containers. Ele fica disponivel por padrao apenas no proprio servidor:
+
+```text
+http://localhost:8082
+```
+
+No `docker-compose.yml`, o DbGate fica publicado em `127.0.0.1`, entao ele nao deve ficar acessivel diretamente pela internet em um deploy remoto.
+
+Se o sistema estiver em um servidor remoto e voce quiser abrir o DbGate na sua maquina, use um tunel SSH:
+
+```bash
+ssh -L 8082:127.0.0.1:8082 usuario@ip-do-servidor
+```
+
+Depois acesse no seu navegador local:
 
 ```text
 http://localhost:8082
@@ -91,7 +105,7 @@ Database: arboviroses_db
 
 O campo `Server` deve ser `db` porque o DbGate roda dentro da mesma rede do Docker Compose. Use `localhost` apenas para ferramentas instaladas diretamente no Windows.
 
-A porta do DbGate pode ser alterada em `.env.docker`:
+A porta local do DbGate pode ser alterada em `.env.docker`:
 
 ```env
 DBGATE_PORT=8082
@@ -129,7 +143,7 @@ Os links publicos ficaram centralizados em `.env.docker`:
 
 - `PUBLIC_ORIGIN`: URL publica da aplicacao
 - `PUBLIC_PORT`: porta publicada pelo container do frontend
-- `DBGATE_PORT`: porta publica do DbGate
+- `DBGATE_PORT`: porta local do DbGate, publicada apenas em `127.0.0.1`
 - `SECURITY_CORS_ALLOWED_ORIGINS`: origens permitidas pelo backend
 - `REACT_APP_API_URL`: URL da API Java consumida pelo frontend
 - `REACT_APP_PYTHON_API_URL`: URL da API Python consumida pelo frontend
@@ -169,7 +183,7 @@ docker compose down -v
 - Frontend/Nginx: `${PUBLIC_ORIGIN}`
 - Backend via proxy: `${PUBLIC_ORIGIN}/api`
 - API Python via proxy: `${PUBLIC_ORIGIN}/python-api`
-- DbGate: `http://localhost:${DBGATE_PORT}`
+- DbGate: `http://localhost:${DBGATE_PORT}` apenas no proprio servidor ou via tunel SSH
 
 ### Observações
 

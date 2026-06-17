@@ -24,7 +24,7 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "${DBGATE_PORT:-8082}:3000"
+      - "127.0.0.1:${DBGATE_PORT:-8082}:3000"
     restart: unless-stopped
 
   backend:
