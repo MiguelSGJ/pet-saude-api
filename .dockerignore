@@ -1,0 +1,14 @@
+.git
+.gitignore
+.idea
+.DS_Store
+target
+nginx
+*.log
+README.md
+Doc_Importacao_Not.md
+SOLUCAO_ARBOMONITOR.md
+stop-system.sh
+arboviroses.service
+.env
+.env.*
