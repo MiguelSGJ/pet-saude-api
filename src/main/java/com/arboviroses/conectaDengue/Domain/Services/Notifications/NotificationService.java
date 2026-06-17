@@ -75,13 +75,6 @@ public class NotificationService {
 
     public SaveCsvResponseDTO saveNotificationsFromCsvBytes(byte[] fileBytes) throws Exception {
         List<NotificationDataDTO> dtos = CsvNotificationReader.read(new java.io.ByteArrayInputStream(fileBytes));
-
-        for (NotificationDataDTO dto : dtos) {
-            if (dto.getNuNotific() == null) {
-                dto.setNuNotific(generateDeterministicId(dto));
-            }
-        }
-
         return saveNotificationsFromBatch(new NotificationBatchDTO(dtos));
     }
 
@@ -91,13 +84,6 @@ public class NotificationService {
 
     public SaveCsvResponseDTO saveNotificationsFromDbfBytes(byte[] fileBytes) throws Exception {
         List<NotificationDataDTO> dtos = DbfNotificationReader.read(new java.io.ByteArrayInputStream(fileBytes));
-
-        for (NotificationDataDTO dto : dtos) {
-            if (dto.getNuNotific() == null) {
-                dto.setNuNotific(generateDeterministicId(dto));
-            }
-        }
-
         return saveNotificationsFromBatch(new NotificationBatchDTO(dtos));
     }
 
@@ -106,15 +92,21 @@ public class NotificationService {
     public SaveCsvResponseDTO saveNotificationsFromBatch(NotificationBatchDTO notificationBatchDTO) {
         List<Notification> notifications = new ArrayList<>();
         List<NotificationWithError> notificationsWithError = new ArrayList<>();
+        Set<Date> batchDates = new HashSet<>();
         Long currentIteration = notificationsErrorService.getLastIteration() + 1;
 
         for (NotificationDataDTO dto : notificationBatchDTO.getNotifications()) {
             try {
                 Notification notification = convertDtoToNotification(dto);
-                
+
+                if (notification.getDataNotification() != null) {
+                    batchDates.add(notification.getDataNotification());
+                }
+
+                // Registros com problema vão APENAS para a tabela de erros; a tabela
+                // principal (que alimenta os dashboards) recebe somente dados sem defeito.
                 if (notificationsErrorService.notificationHasError(notification)) {
                     NotificationWithError notificationWithError = NotificationWithError.builder()
-                        .idNotification(notification.getIdNotification())
                         .idAgravo(notification.getIdAgravo())
                         .idadePaciente(notification.getIdadePaciente())
                         .dataNotification(notification.getDataNotification())
@@ -130,52 +122,30 @@ public class NotificationService {
                         .build();
 
                     notificationsWithError.add(notificationWithError);
+                } else {
+                    notifications.add(notification);
                 }
-
-                notifications.add(notification);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
 
+        // Dedup de re-upload: remove registros antigos (principal e erros) de todas as
+        // datas presentes no lote antes de reinserir, independentemente de terem defeito.
+        if (!batchDates.isEmpty()) {
+            notificationRepository.deleteByDataNotificationIn(batchDates);
+            notificationsErrorService.deleteByDataNotification(batchDates);
+        }
+
         if (!notifications.isEmpty()) {
-            Set<Date> batchDates = notifications.stream()
-                .map(Notification::getDataNotification)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-
-            if (!batchDates.isEmpty()) {
-                notificationRepository.deleteByDataNotificationIn(batchDates);
-                notificationsErrorService.deleteByDataNotification(batchDates);
-            }
-
             notificationRepository.saveAll(notifications);
         }
-        
+
         if (!notificationsWithError.isEmpty()) {
             notificationsErrorService.insertListOfNotifications(notificationsWithError);
         }
 
         return new SaveCsvResponseDTO(true);
-    }
-
-    private long generateDeterministicId(NotificationDataDTO dto) {
-        String key = Stream.of(
-            dto.getIdAgravo(),
-            dto.getDtSinPri() != null ? dto.getDtSinPri() : dto.getDtNotific(),
-            dto.getDtNasc(),
-            dto.getCsSexo(),
-            dto.getNmBairro(),
-            dto.getIdade() != null ? dto.getIdade().toString() : "0",
-            dto.getIdBairro() != null ? dto.getIdBairro().toString() : "0"
-        ).map(s -> s != null ? s : "").collect(Collectors.joining("|"));
-
-        long hash = 1000000007L;
-        for (char c : key.toCharArray()) {
-            hash = hash * 31L + c;
-        }
-        hash = Math.abs(hash);
-        return hash == 0 ? 1L : hash;
     }
 
     private Notification convertDtoToNotification(NotificationDataDTO dto) throws ParseException {
@@ -192,7 +162,7 @@ public class NotificationService {
 
         notification.setDataNotification(dataNotificacao);
         notification.setDataPrimeiroSintoma(dataPrimeiroSintoma);
-        notification.setIdNotification(dto.getNuNotific());
+        // idNotification é gerado pelo banco (sequência); não vem do arquivo.
         notification.setIdAgravo(dto.getIdAgravo());
 
         // Idade: usa NU_IDADE_N se disponível; senão calcula a partir de DT_NASC + ano da notificação
@@ -304,16 +274,6 @@ public class NotificationService {
 
         applyUpdateDto(notification, dto);
         notificationRepository.save(notification);
-
-        NotificationWithError errorRecord = notificationsErrorService.getNotificationWithErrorById(id);
-        if (errorRecord != null) {
-            syncErrorFromNotification(errorRecord, notification);
-            if (!notificationsErrorService.notificationHasError(notification)) {
-                notificationsErrorService.deleteById(id);
-            } else {
-                notificationsErrorService.saveNotificationWithError(errorRecord);
-            }
-        }
     }
 
     public void deleteNotification(long id) {
@@ -338,20 +298,6 @@ public class NotificationService {
         if (dto.getIdade() != null && dto.getIdade() > 0) {
             n.setIdadePaciente(dto.getIdade());
         }
-    }
-
-    private void syncErrorFromNotification(NotificationWithError e, Notification n) {
-        e.setIdAgravo(n.getIdAgravo());
-        e.setDataNotification(n.getDataNotification());
-        e.setDataPrimeiroSintoma(n.getDataPrimeiroSintoma());
-        e.setDataNascimento(n.getDataNascimento());
-        e.setClassificacao(n.getClassificacao());
-        e.setSexo(n.getSexo());
-        e.setNomeBairro(n.getNomeBairro());
-        e.setIdBairro(n.getIdBairro());
-        e.setEvolucao(n.getEvolucao());
-        e.setIdadePaciente(n.getIdadePaciente());
-        e.setSemanaEpidemiologica(n.getSemanaEpidemiologica());
     }
 
     public String getLatestNotificationDate() {

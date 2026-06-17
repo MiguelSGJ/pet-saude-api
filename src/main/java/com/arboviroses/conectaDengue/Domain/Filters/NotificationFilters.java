@@ -25,7 +25,7 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.servlet.http.HttpServletRequest;
 
 public class NotificationFilters {
-    private static final List<String> CONFIRMED_CLASSIFICATIONS = Arrays.asList("10", "11", "12");
+    private static final List<String> CONFIRMED_CLASSIFICATIONS = Arrays.asList("10", "11", "12", "13");
 
     @PersistenceContext
     private EntityManager entityManager;
