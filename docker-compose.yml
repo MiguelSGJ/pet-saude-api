@@ -28,7 +28,7 @@ services:
     restart: unless-stopped
 
   backend:
-    image: ghcr.io/migueisgj/pet-saude-api:latest
+    image: ghcr.io/miguelsgj/pet-saude-api:latest
     container_name: arboviroses-backend
     pull_policy: always
     environment:
