@@ -3,6 +3,7 @@ name: Build, Push and Deploy
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 env:
   IMAGE_NAME: ghcr.io/migueisgj/pet-saude-api
