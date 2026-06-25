@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: ghcr.io/migueisgj/pet-saude-api
+  IMAGE_NAME: ghcr.io/miguelsgj/pet-saude-api
 
 jobs:
   build-and-push:
