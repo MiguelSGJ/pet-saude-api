@@ -28,10 +28,9 @@ services:
     restart: unless-stopped
 
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/migueisgj/pet-saude-api:latest
     container_name: arboviroses-backend
+    pull_policy: always
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-arboviroses_db}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
@@ -61,12 +60,8 @@ services:
     restart: unless-stopped
 
   frontend:
-    build:
-      context: ../ArbovirosesFront
-      dockerfile: Dockerfile
-      args:
-        REACT_APP_API_URL: ${REACT_APP_API_URL:-/api}
-        REACT_APP_PYTHON_API_URL: ${REACT_APP_PYTHON_API_URL:-/python-api}
+    image: ghcr.io/kaio05/arbovirosesfront:latest
+    pull_policy: always
     container_name: arboviroses-frontend
     depends_on:
       - backend
