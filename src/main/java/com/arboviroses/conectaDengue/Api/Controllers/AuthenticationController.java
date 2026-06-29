@@ -2,6 +2,7 @@ package com.arboviroses.conectaDengue.Api.Controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,9 +22,11 @@ import com.arboviroses.conectaDengue.Domain.Entities.User;
 import com.arboviroses.conectaDengue.Domain.Repositories.Users.UserRepository;
 import com.arboviroses.conectaDengue.Domain.Services.auth.AuthenticationService;
 import com.arboviroses.conectaDengue.Domain.Services.auth.JwtService;
+import com.arboviroses.conectaDengue.Domain.Services.auth.LoginRateLimiter;
 import com.arboviroses.conectaDengue.Domain.Services.auth.RefreshTokenService;
 
 import io.jsonwebtoken.ExpiredJwtException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 @RequestMapping("api/auth")
@@ -39,9 +42,12 @@ public class AuthenticationController {
     
     private final AuthenticationService authenticationService;
 
-    public AuthenticationController(JwtService jwtService, AuthenticationService authenticationService) {
+    private final LoginRateLimiter loginRateLimiter;
+
+    public AuthenticationController(JwtService jwtService, AuthenticationService authenticationService, LoginRateLimiter loginRateLimiter) {
         this.jwtService = jwtService;
         this.authenticationService = authenticationService;
+        this.loginRateLimiter = loginRateLimiter;
     }
 
     @PostMapping("/register")
@@ -52,10 +58,20 @@ public class AuthenticationController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<JwtResponse> authenticate(@RequestBody LoginUserDTO loginUserDto) throws UsernameNotFoundException {    
-        Authentication authentication = authenticationService.authenticate(loginUserDto);
+    public ResponseEntity<JwtResponse> authenticate(@Valid @RequestBody LoginUserDTO loginUserDto, HttpServletRequest request) throws UsernameNotFoundException {
+        String limiterKey = loginUserDto.getCpf() + ":" + clientIp(request);
+        loginRateLimiter.assertAllowed(limiterKey);
+
+        Authentication authentication;
+        try {
+            authentication = authenticationService.authenticate(loginUserDto);
+        } catch (BadCredentialsException | UsernameNotFoundException exception) {
+            loginRateLimiter.recordFailure(limiterKey);
+            throw exception;
+        }
 
         if (!authentication.isAuthenticated()) {
+            loginRateLimiter.recordFailure(limiterKey);
             throw new UsernameNotFoundException("User not authenticated");
         }
 
@@ -67,13 +83,21 @@ public class AuthenticationController {
 
         String jwtToken = jwtService.generateToken(authenticatedUser);
 
-        JwtResponse loginResponse = new JwtResponse(jwtToken, refreshToken.getToken(), authenticatedUser.getFullName());
+        JwtResponse loginResponse = new JwtResponse(
+            jwtToken,
+            refreshToken.getToken(),
+            authenticatedUser.getFullName(),
+            authenticatedUser.getCpf(),
+            authenticatedUser.getRole().name()
+        );
+
+        loginRateLimiter.recordSuccess(limiterKey);
 
         return ResponseEntity.ok(loginResponse);
     }
 
     @PostMapping("/refreshToken")
-    public ResponseEntity<JwtResponse> refreshToken(@RequestBody RefreshTokenRequestDTO refreshTokenRequest) throws UsernameNotFoundException {        
+    public ResponseEntity<JwtResponse> refreshToken(@Valid @RequestBody RefreshTokenRequestDTO refreshTokenRequest) throws UsernameNotFoundException {
         JwtResponse response = refreshTokenService.findByToken(refreshTokenRequest.getToken())
                     .map(refreshTokenService::verifyExpiration)
                     .map(RefreshToken::getUser)
@@ -82,11 +106,23 @@ public class AuthenticationController {
 
                     return JwtResponse.builder()
                                         .jwtToken(accessToken)
-                                        .token(refreshTokenRequest.getToken()).build();
+                                        .token(refreshTokenRequest.getToken())
+                                        .fullName(user.getFullName())
+                                        .cpf(user.getCpf())
+                                        .role(user.getRole().name())
+                                        .build();
                     }).orElseThrow(() -> new ExpiredJwtException(null, null, "Refresh Token não é válido!"));
 
         return ResponseEntity.ok(response);
     }
     
+    private String clientIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",")[0].trim();
+        }
+
+        return request.getRemoteAddr();
+    }
 
 }

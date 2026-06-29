@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Map;
 
 import com.arboviroses.conectaDengue.Api.DTO.request.UpdateNotificationDTO;
+import com.arboviroses.conectaDengue.Api.Validation.InputPatterns;
+import com.arboviroses.conectaDengue.Api.Validation.UploadValidator;
 import com.arboviroses.conectaDengue.Api.DTO.response.ManageNotificationResponseDTO;
 import com.arboviroses.conectaDengue.Api.DTO.response.NotificationErrorWithCategoryDTO;
 import com.arboviroses.conectaDengue.Domain.Services.reports.ErrorsPdfReportService;
@@ -33,17 +35,24 @@ import com.arboviroses.conectaDengue.Api.DTO.response.DataNotificationResponseDT
 import com.arboviroses.conectaDengue.Api.DTO.response.SaveCsvResponseDTO;
 import com.arboviroses.conectaDengue.Api.DTO.response.SuccessResponseDTO;
 import com.arboviroses.conectaDengue.Api.Exceptions.InvalidAgravoException;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import com.arboviroses.conectaDengue.Domain.Entities.Notification.NotificationWithError;
 import com.arboviroses.conectaDengue.Domain.Services.Notifications.NotificationAsyncService;
 import com.arboviroses.conectaDengue.Domain.Services.Notifications.NotificationService;
 import com.arboviroses.conectaDengue.Domain.Services.Notifications.NotificationsErrorService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @RestController
 @RequestMapping("api")
 @RequiredArgsConstructor
+@Validated
 public class NotificationController 
 {
     private final NotificationService notificationService;
@@ -54,24 +63,27 @@ public class NotificationController
 
     @PostMapping("/uploadXlsx")
     public ResponseEntity<SuccessResponseDTO<String>> uploadXlsx(@RequestParam("file") MultipartFile file) throws Exception {
+        UploadValidator.validate(file, UploadValidator.MAX_UPLOAD_BYTES, "xlsx");
         notificationAsyncService.processXlsxAsync(file.getBytes());
         return ResponseEntity.accepted().body(SuccessResponseDTO.setResponse("processamento iniciado", null));
     }
 
     @PostMapping("/uploadCsv")
     public ResponseEntity<SuccessResponseDTO<String>> uploadCsv(@RequestParam("file") MultipartFile file) throws Exception {
+        UploadValidator.validate(file, UploadValidator.MAX_UPLOAD_BYTES, "csv");
         notificationAsyncService.processCsvAsync(file.getBytes());
         return ResponseEntity.accepted().body(SuccessResponseDTO.setResponse("processamento iniciado", null));
     }
 
     @PostMapping("/uploadDbf")
     public ResponseEntity<SuccessResponseDTO<String>> uploadDbf(@RequestParam("file") MultipartFile file) throws Exception {
+        UploadValidator.validate(file, UploadValidator.MAX_UPLOAD_BYTES, "dbf");
         notificationAsyncService.processDbfAsync(file.getBytes());
         return ResponseEntity.accepted().body(SuccessResponseDTO.setResponse("processamento iniciado", null));
     }
 
     @PostMapping("/saveNotifications")
-    public ResponseEntity<SuccessResponseDTO<SaveCsvResponseDTO>> saveNotifications(@RequestBody NotificationBatchDTO notificationsData) throws Exception {
+    public ResponseEntity<SuccessResponseDTO<SaveCsvResponseDTO>> saveNotifications(@Valid @RequestBody NotificationBatchDTO notificationsData) throws Exception {
         return ResponseEntity.ok().body(SuccessResponseDTO.setResponse(notificationService.saveNotificationsFromBatch(notificationsData), "notificações salvas com sucesso"));
     }
 
@@ -100,7 +112,7 @@ public class NotificationController
     }
 
     @PostMapping("/notifications/count/byYears")
-    public ResponseEntity<Map<Integer, Map<Integer, Long>>> getNotificationCountsByYear(@RequestBody List<Integer> years) {
+    public ResponseEntity<Map<Integer, Map<Integer, Long>>> getNotificationCountsByYear(@Size(max = 10, message = "Quantidade de anos invalida") @RequestBody List<@Min(2000) @Max(2100) Integer> years) {
         Map<Integer, Map<Integer, Long>> result = notificationService.getNotificationCountsByYear(years);
         return ResponseEntity.ok(result);
     }
@@ -127,12 +139,12 @@ public class NotificationController
 
     @GetMapping("/notifications/manage")
     public ResponseEntity<SuccessResponseDTO<Page<ManageNotificationResponseDTO>>> manageNotifications(
-        @RequestParam(required = false) Integer year,
-        @RequestParam(required = false) Integer week,
-        @RequestParam(required = false) String bairro,
-        @RequestParam(required = false) String idAgravo,
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "20") int size
+        @RequestParam(required = false) @Min(2000) @Max(2100) Integer year,
+        @RequestParam(required = false) @Min(1) @Max(53) Integer week,
+        @RequestParam(required = false) @Size(max = 120) @Pattern(regexp = InputPatterns.SAFE_TEXT) String bairro,
+        @RequestParam(required = false) @Size(max = 30) @Pattern(regexp = InputPatterns.AGRAVO) String idAgravo,
+        @RequestParam(defaultValue = "0") @Min(0) int page,
+        @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
         return ResponseEntity.ok(SuccessResponseDTO.setResponse(
             notificationService.getNotificationsManage(year, week, bairro, idAgravo, page, size), null));
@@ -140,25 +152,25 @@ public class NotificationController
 
     @PutMapping("/notifications/{id}")
     public ResponseEntity<SuccessResponseDTO<String>> updateNotification(
-        @PathVariable long id, @RequestBody UpdateNotificationDTO dto) throws Exception {
+        @PathVariable @Min(1) long id, @Valid @RequestBody UpdateNotificationDTO dto) throws Exception {
         notificationService.updateNotification(id, dto);
         return ResponseEntity.ok(SuccessResponseDTO.setResponse("Notificação atualizada", null));
     }
 
     @DeleteMapping("/notifications/{id}")
-    public ResponseEntity<SuccessResponseDTO<String>> deleteNotification(@PathVariable long id) {
+    public ResponseEntity<SuccessResponseDTO<String>> deleteNotification(@PathVariable @Min(1) long id) {
         notificationService.deleteNotification(id);
         return ResponseEntity.ok(SuccessResponseDTO.setResponse("Notificação removida", null));
     }
 
     @GetMapping("/notifications/errors/manage")
     public ResponseEntity<SuccessResponseDTO<Page<NotificationErrorWithCategoryDTO>>> manageErrors(
-        @RequestParam(required = false) String category,
-        @RequestParam(required = false) Long startDate,
-        @RequestParam(required = false) Long endDate,
-        @RequestParam(required = false) String idAgravo,
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "20") int size
+        @RequestParam(required = false) @Size(max = 60) @Pattern(regexp = InputPatterns.SAFE_TEXT) String category,
+        @RequestParam(required = false) @Min(0) Long startDate,
+        @RequestParam(required = false) @Min(0) Long endDate,
+        @RequestParam(required = false) @Size(max = 30) @Pattern(regexp = InputPatterns.AGRAVO) String idAgravo,
+        @RequestParam(defaultValue = "0") @Min(0) int page,
+        @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
         org.springframework.data.domain.PageRequest pageable =
             org.springframework.data.domain.PageRequest.of(page, size);
@@ -168,13 +180,13 @@ public class NotificationController
 
     @PutMapping("/notifications/errors/{id}")
     public ResponseEntity<SuccessResponseDTO<String>> updateNotificationError(
-        @PathVariable long id, @RequestBody UpdateNotificationDTO dto) throws Exception {
+        @PathVariable @Min(1) long id, @Valid @RequestBody UpdateNotificationDTO dto) throws Exception {
         notificationService.updateNotification(id, dto);
         return ResponseEntity.ok(SuccessResponseDTO.setResponse("Registro atualizado", null));
     }
 
     @DeleteMapping("/notifications/errors/{id}")
-    public ResponseEntity<SuccessResponseDTO<String>> deleteNotificationError(@PathVariable long id) {
+    public ResponseEntity<SuccessResponseDTO<String>> deleteNotificationError(@PathVariable @Min(1) long id) {
         notificationsErrorService.deleteById(id);
         return ResponseEntity.ok(SuccessResponseDTO.setResponse("Registro removido da lista de erros", null));
     }
@@ -196,10 +208,10 @@ public class NotificationController
 
     @GetMapping(value = "/notifications/errors/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
     public ResponseEntity<byte[]> generateErrorsPdfReport(
-        @RequestParam(required = false) String category,
-        @RequestParam(required = false) Long startDate,
-        @RequestParam(required = false) Long endDate,
-        @RequestParam(required = false) String idAgravo
+        @RequestParam(required = false) @Size(max = 60) @Pattern(regexp = InputPatterns.SAFE_TEXT) String category,
+        @RequestParam(required = false) @Min(0) Long startDate,
+        @RequestParam(required = false) @Min(0) Long endDate,
+        @RequestParam(required = false) @Size(max = 30) @Pattern(regexp = InputPatterns.AGRAVO) String idAgravo
     ) {
         byte[] pdf = errorsPdfReportService.generateReport(category, startDate, endDate, idAgravo);
         String filename = (category != null && !category.isBlank())
@@ -213,12 +225,12 @@ public class NotificationController
 
     @GetMapping(value = "/notifications/report/neighborhood/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
     public ResponseEntity<byte[]> generateNeighborhoodWeeklyPdfReport(
-        @RequestParam("semanaFinal") Integer semanaFinal,
-        @RequestParam(required = false) Integer semanaInicial,
-        @RequestParam(required = false) Integer year,
-        @RequestParam(required = false) String agravo,
-        @RequestParam(required = false) String bairro,
-        @RequestParam(required = false) String scope
+        @RequestParam("semanaFinal") @Min(1) @Max(53) Integer semanaFinal,
+        @RequestParam(required = false) @Min(1) @Max(53) Integer semanaInicial,
+        @RequestParam(required = false) @Min(2000) @Max(2100) Integer year,
+        @RequestParam(required = false) @Size(max = 30) @Pattern(regexp = InputPatterns.AGRAVO) String agravo,
+        @RequestParam(required = false) @Size(max = 120) @Pattern(regexp = InputPatterns.SAFE_TEXT) String bairro,
+        @RequestParam(required = false) @Pattern(regexp = InputPatterns.SCOPE) String scope
     ) throws InvalidAgravoException {
         NeighborhoodWeeklyPdfReportRequest reportRequest =
             new NeighborhoodWeeklyPdfReportRequest(semanaInicial, semanaFinal, year, agravo, bairro, scope);

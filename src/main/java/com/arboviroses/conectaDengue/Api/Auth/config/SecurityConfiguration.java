@@ -3,6 +3,8 @@ package com.arboviroses.conectaDengue.Api.Auth.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -31,11 +33,17 @@ public class SecurityConfiguration {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf
                 .disable())
+                .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(requests -> requests
-                        .requestMatchers("api/auth/register").authenticated()
-                        .requestMatchers("api/lira/upload").authenticated()
-                        .anyRequest()
-                        .permitAll())
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/refreshToken").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/uploadXlsx", "/api/uploadCsv", "/api/uploadDbf", "/api/saveNotifications").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/lira/upload", "/api/determinantes/upload").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/notifications/manage", "/api/notifications/errors/manage").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/notifications/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/notifications/**").hasRole("ADMIN")
+                        .anyRequest().authenticated())
                 .sessionManagement(management -> management
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)

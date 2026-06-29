@@ -24,7 +24,7 @@ public class ConvertNameToIdAgravoTest {
     {
         String invalidAgravo = "Test value";
 
-        String errorMessage = "Valor inválido: " + invalidAgravo + ". valores aceitos: zika, dengue, chikungunya";
+        String errorMessage = "Valor inválido: " + invalidAgravo + ". Valores aceitos: zika, dengue, dengue_geral, dengue_classica, dengue_alarmante, dengue_grave, chikungunya";
 
         String message = Assertions.assertThrows(InvalidAgravoException.class, () -> {
             ConvertNameToIdAgravo.convert(invalidAgravo);
