@@ -12,6 +12,7 @@ import com.arboviroses.conectaDengue.Api.DTO.request.RegisterUserDTO;
 import com.arboviroses.conectaDengue.Api.Exceptions.PasswordNotMatchException;
 import com.arboviroses.conectaDengue.Api.Exceptions.UserAlredyExistsException;
 import com.arboviroses.conectaDengue.Domain.Entities.User;
+import com.arboviroses.conectaDengue.Domain.Entities.UserRole;
 import com.arboviroses.conectaDengue.Domain.Repositories.Users.UserRepository;
 
 @Service
@@ -53,7 +54,8 @@ public class AuthenticationService {
         User user = new User()
                 .setFullName(input.getFullName())
                 .setCpf(input.getCpf())
-                .setPassword(passwordEncoder.encode(input.getPassword()));
+                .setPassword(passwordEncoder.encode(input.getPassword()))
+                .setRole(resolveRole(input.getRole(), UserRole.USER));
 
         return userRepository.save(user);
     }
@@ -70,13 +72,34 @@ public class AuthenticationService {
     }
 
     public void seed() {
-        if (userRepository.findByCpf(seedCpf).isPresent()) return;
+        User existingUser = userRepository.findByCpf(seedCpf).orElse(null);
+
+        if (existingUser != null) {
+            if (existingUser.getRole() != UserRole.ADMIN) {
+                existingUser.setRole(UserRole.ADMIN);
+                userRepository.save(existingUser);
+            }
+            return;
+        }
 
         User user = new User()
                 .setFullName(seedName)
                 .setCpf(seedCpf)
-                .setPassword(passwordEncoder.encode(seedPassword));
+                .setPassword(passwordEncoder.encode(seedPassword))
+                .setRole(UserRole.ADMIN);
 
         userRepository.save(user);
+    }
+
+    private UserRole resolveRole(String role, UserRole fallback) {
+        if (role == null || role.isBlank()) {
+            return fallback;
+        }
+
+        try {
+            return UserRole.valueOf(role.trim().toUpperCase());
+        } catch (IllegalArgumentException exception) {
+            return fallback;
+        }
     }
 }

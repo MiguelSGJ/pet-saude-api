@@ -67,7 +67,13 @@ public class AuthenticationController {
 
         String jwtToken = jwtService.generateToken(authenticatedUser);
 
-        JwtResponse loginResponse = new JwtResponse(jwtToken, refreshToken.getToken(), authenticatedUser.getFullName());
+        JwtResponse loginResponse = new JwtResponse(
+            jwtToken,
+            refreshToken.getToken(),
+            authenticatedUser.getFullName(),
+            authenticatedUser.getCpf(),
+            authenticatedUser.getRole().name()
+        );
 
         return ResponseEntity.ok(loginResponse);
     }
@@ -82,7 +88,11 @@ public class AuthenticationController {
 
                     return JwtResponse.builder()
                                         .jwtToken(accessToken)
-                                        .token(refreshTokenRequest.getToken()).build();
+                                        .token(refreshTokenRequest.getToken())
+                                        .fullName(user.getFullName())
+                                        .cpf(user.getCpf())
+                                        .role(user.getRole().name())
+                                        .build();
                     }).orElseThrow(() -> new ExpiredJwtException(null, null, "Refresh Token não é válido!"));
 
         return ResponseEntity.ok(response);

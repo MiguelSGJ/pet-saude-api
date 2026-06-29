@@ -10,11 +10,13 @@ public class RegisterUser {
     int id;
     String name;
     String cpf;
+    String role;
     
     public RegisterUser(User user) 
     {
         this.id = user.getId();
         this.name = user.getFullName();
         this.cpf = user.getCpf();
+        this.role = user.getRole().name();
     }
 }

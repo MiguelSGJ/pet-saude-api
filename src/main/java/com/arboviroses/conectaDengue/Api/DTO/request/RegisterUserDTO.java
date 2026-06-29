@@ -22,6 +22,8 @@ public class RegisterUserDTO {
     @NotEmpty(message = "Nome completo não pode ser vazio")
     private String fullName;
 
+    private String role;
+
     public RegisterUserDTO setCpf(String cpf) {
         System.out.println(cpf);
 
