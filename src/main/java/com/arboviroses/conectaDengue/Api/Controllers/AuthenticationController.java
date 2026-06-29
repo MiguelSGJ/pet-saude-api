@@ -52,7 +52,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<JwtResponse> authenticate(@RequestBody LoginUserDTO loginUserDto) throws UsernameNotFoundException {    
+    public ResponseEntity<JwtResponse> authenticate(@Valid @RequestBody LoginUserDTO loginUserDto) throws UsernameNotFoundException {
         Authentication authentication = authenticationService.authenticate(loginUserDto);
 
         if (!authentication.isAuthenticated()) {
@@ -79,7 +79,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("/refreshToken")
-    public ResponseEntity<JwtResponse> refreshToken(@RequestBody RefreshTokenRequestDTO refreshTokenRequest) throws UsernameNotFoundException {        
+    public ResponseEntity<JwtResponse> refreshToken(@Valid @RequestBody RefreshTokenRequestDTO refreshTokenRequest) throws UsernameNotFoundException {
         JwtResponse response = refreshTokenService.findByToken(refreshTokenRequest.getToken())
                     .map(refreshTokenService::verifyExpiration)
                     .map(RefreshToken::getUser)

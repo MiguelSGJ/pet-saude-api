@@ -26,6 +26,7 @@ import com.opencsv.exceptions.CsvException;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.ServletException;
+import jakarta.validation.ConstraintViolationException;
 
 @ControllerAdvice
 @ResponseBody
@@ -46,6 +47,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(NumberFormatException.class)
     public ResponseEntity<Object> HandleExceptions(NumberFormatException exception, WebRequest request)
+    {
+        ApiExceptionResponse exceptionResponse = new ApiExceptionResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
+        return new ResponseEntity<>(exceptionResponse, new HttpHeaders(), exceptionResponse.getHttpStatus());
+    }
+
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<Object> HandleExceptions(ValidationException exception, WebRequest request)
     {
         ApiExceptionResponse exceptionResponse = new ApiExceptionResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
         return new ResponseEntity<>(exceptionResponse, new HttpHeaders(), exceptionResponse.getHttpStatus());
@@ -146,6 +154,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, List<String>>> handleValidationErrors(MethodArgumentNotValidException ex) {
         List<String> errors = ex.getBindingResult().getFieldErrors()
                 .stream().map(FieldError::getDefaultMessage).collect(Collectors.toList());
+        return new ResponseEntity<>(getErrorsMap(errors), new HttpHeaders(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Map<String, List<String>>> handleConstraintViolationErrors(ConstraintViolationException ex) {
+        List<String> errors = ex.getConstraintViolations()
+                .stream().map(violation -> violation.getMessage()).collect(Collectors.toList());
         return new ResponseEntity<>(getErrorsMap(errors), new HttpHeaders(), HttpStatus.BAD_REQUEST);
     }
 
