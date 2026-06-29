@@ -75,8 +75,19 @@ public class AuthenticationService {
         User existingUser = userRepository.findByCpf(seedCpf).orElse(null);
 
         if (existingUser != null) {
+            boolean changed = false;
             if (existingUser.getRole() != UserRole.ADMIN) {
                 existingUser.setRole(UserRole.ADMIN);
+                changed = true;
+            }
+
+            if (passwordEncoder.matches("admin", existingUser.getPassword())
+                    && !passwordEncoder.matches(seedPassword, existingUser.getPassword())) {
+                existingUser.setPassword(passwordEncoder.encode(seedPassword));
+                changed = true;
+            }
+
+            if (changed) {
                 userRepository.save(existingUser);
             }
             return;
