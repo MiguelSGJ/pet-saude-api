@@ -13,6 +13,10 @@ Está centralizada no endpoint base `/determinantes`.
 *   **Endpoint:** `GET /determinantes`
 *   **Descrição:** Retorna todos os registros salvos no banco de dados com todos os campos.
 
+### 2.1. Listagem de Bairros Disponíveis
+*   **Endpoint:** `GET /determinantes/neighborhoods`
+*   **Descrição:** Retorna os bairros distintos presentes na base de determinantes, já ordenados e sem valores vazios.
+
 ### 3. Consultas Segmentadas (Blocos)
 Estes endpoints utilizam **DTOs otimizados** para retornar apenas os campos relevantes de cada categoria.
 

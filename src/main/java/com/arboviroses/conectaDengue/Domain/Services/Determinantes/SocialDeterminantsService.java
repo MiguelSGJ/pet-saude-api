@@ -2,10 +2,13 @@ package com.arboviroses.conectaDengue.Domain.Services.Determinantes;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.Collator;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 
 import com.arboviroses.conectaDengue.Api.Exceptions.ApiExceptionResponse;
@@ -157,6 +160,17 @@ public class SocialDeterminantsService {
 
     public List<Determinantes> listAllByBairro(String bairro) {
         return repository.findByBairroContainingIgnoreCaseOrderByAnoDescUbsAsc(bairro);
+    }
+
+    public List<String> getAllNeighborhoods() {
+        Collator collator = Collator.getInstance(new Locale("pt", "BR"));
+        return repository.findDistinctNeighborhoods().stream()
+            .filter(Objects::nonNull)
+            .map(String::trim)
+            .filter(bairro -> !bairro.isBlank())
+            .distinct()
+            .sorted(collator)
+            .toList();
     }
 
     public List<AguaDTO> listAgua() {
