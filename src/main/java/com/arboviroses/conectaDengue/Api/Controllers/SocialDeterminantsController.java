@@ -58,6 +58,11 @@ public class SocialDeterminantsController {
         return service.listAll();
     }
 
+    @GetMapping("/neighborhoods")
+    public List<String> listNeighborhoods() {
+        return service.getAllNeighborhoods();
+    }
+
     @GetMapping("/agua")
     public List<AguaDTO> listAgua() {
         return service.listAgua();

@@ -27,6 +27,15 @@ public interface DeterminantesRepository extends JpaRepository<Determinantes, Lo
 
     List<Determinantes> findByBairroContainingIgnoreCaseOrderByAnoDescUbsAsc(String bairro);
 
+    @Query("""
+        SELECT DISTINCT d.bairro
+        FROM Determinantes d
+        WHERE d.bairro IS NOT NULL
+        ORDER BY d.bairro
+        """
+    )
+    List<String> findDistinctNeighborhoods();
+
 
     @Query(""" 
         SELECT new com.arboviroses.conectaDengue.Api.DTO.AguaDTO(
