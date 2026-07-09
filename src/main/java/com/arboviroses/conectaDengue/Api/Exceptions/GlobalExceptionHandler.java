@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.server.ResponseStatusException;
 import com.opencsv.exceptions.CsvException;
 
 import io.jsonwebtoken.ExpiredJwtException;
@@ -148,6 +149,17 @@ public class GlobalExceptionHandler {
     {
         ApiExceptionResponse exceptionResponse = new ApiExceptionResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
         return new ResponseEntity<>(exceptionResponse, new HttpHeaders(), exceptionResponse.getHttpStatus());
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Object> HandleExceptions(ResponseStatusException exception, WebRequest request)
+    {
+        String message = exception.getReason() != null && !exception.getReason().isBlank()
+            ? exception.getReason()
+            : exception.getMessage();
+
+        ApiExceptionResponse exceptionResponse = new ApiExceptionResponse(HttpStatus.valueOf(exception.getStatusCode().value()), message);
+        return new ResponseEntity<>(exceptionResponse, new HttpHeaders(), exception.getStatusCode());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
