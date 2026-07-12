@@ -92,7 +92,7 @@ public class NotificationService {
     public SaveCsvResponseDTO saveNotificationsFromBatch(NotificationBatchDTO notificationBatchDTO) {
         List<Notification> notifications = new ArrayList<>();
         List<NotificationWithError> notificationsWithError = new ArrayList<>();
-        Set<Date> batchDates = new HashSet<>();
+        Map<String, Set<Date>> batchDatesByDisease = new HashMap<>();
         Long currentIteration = notificationsErrorService.getLastIteration() + 1;
 
         for (NotificationDataDTO dto : notificationBatchDTO.getNotifications()) {
@@ -100,7 +100,9 @@ public class NotificationService {
                 Notification notification = convertDtoToNotification(dto);
 
                 if (notification.getDataNotification() != null) {
-                    batchDates.add(notification.getDataNotification());
+                    batchDatesByDisease
+                        .computeIfAbsent(notification.getIdAgravo(), ignored -> new HashSet<>())
+                        .add(notification.getDataNotification());
                 }
 
                 // Registros com problema vão APENAS para a tabela de erros; a tabela
@@ -130,11 +132,11 @@ public class NotificationService {
             }
         }
 
-        // Dedup de re-upload: remove registros antigos (principal e erros) de todas as
-        // datas presentes no lote antes de reinserir, independentemente de terem defeito.
-        if (!batchDates.isEmpty()) {
-            notificationRepository.deleteByDataNotificationIn(batchDates);
-            notificationsErrorService.deleteByDataNotification(batchDates);
+        // Dedup de re-upload: remove registros antigos apenas da mesma doença nas
+        // datas presentes no lote, evitando que um agravo apague o outro.
+        if (!batchDatesByDisease.isEmpty()) {
+            deleteExistingNotificationsByDiseaseAndDate(batchDatesByDisease);
+            notificationsErrorService.deleteByDiseaseAndDataNotification(batchDatesByDisease);
         }
 
         if (!notifications.isEmpty()) {
@@ -146,6 +148,21 @@ public class NotificationService {
         }
 
         return new SaveCsvResponseDTO(true);
+    }
+
+    private void deleteExistingNotificationsByDiseaseAndDate(Map<String, Set<Date>> batchDatesByDisease) {
+        for (Map.Entry<String, Set<Date>> entry : batchDatesByDisease.entrySet()) {
+            Set<Date> dates = entry.getValue();
+            if (dates == null || dates.isEmpty()) {
+                continue;
+            }
+
+            if (entry.getKey() == null) {
+                notificationRepository.deleteByIdAgravoIsNullAndDataNotificationIn(dates);
+            } else {
+                notificationRepository.deleteByIdAgravoAndDataNotificationIn(entry.getKey(), dates);
+            }
+        }
     }
 
     private Notification convertDtoToNotification(NotificationDataDTO dto) throws ParseException {
