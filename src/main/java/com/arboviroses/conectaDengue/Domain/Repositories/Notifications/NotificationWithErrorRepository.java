@@ -27,6 +27,22 @@ public interface NotificationWithErrorRepository extends JpaRepository<Notificat
 
     @Modifying
     @Transactional
-    @Query("DELETE FROM NotificationWithError n WHERE n.dataNotification IN :dates")
-    void deleteByDataNotificationIn(@Param("dates") Collection<Date> dates);
+    @Query("""
+        DELETE FROM NotificationWithError n
+        WHERE n.idAgravo = :idAgravo
+        AND n.dataNotification IN :dates
+        """)
+    void deleteByIdAgravoAndDataNotificationIn(
+        @Param("idAgravo") String idAgravo,
+        @Param("dates") Collection<Date> dates
+    );
+
+    @Modifying
+    @Transactional
+    @Query("""
+        DELETE FROM NotificationWithError n
+        WHERE n.idAgravo IS NULL
+        AND n.dataNotification IN :dates
+        """)
+    void deleteByIdAgravoIsNullAndDataNotificationIn(@Param("dates") Collection<Date> dates);
 }

@@ -3,6 +3,7 @@ package com.arboviroses.conectaDengue.Domain.Services.Notifications;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -64,8 +65,19 @@ public class NotificationsErrorService {
         notificationWithErrorRepository.deleteById(id);
     }
 
-    public void deleteByDataNotification(Collection<Date> dates) {
-        notificationWithErrorRepository.deleteByDataNotificationIn(dates);
+    public void deleteByDiseaseAndDataNotification(Map<String, ? extends Collection<Date>> datesByDisease) {
+        for (Map.Entry<String, ? extends Collection<Date>> entry : datesByDisease.entrySet()) {
+            Collection<Date> dates = entry.getValue();
+            if (dates == null || dates.isEmpty()) {
+                continue;
+            }
+
+            if (entry.getKey() == null) {
+                notificationWithErrorRepository.deleteByIdAgravoIsNullAndDataNotificationIn(dates);
+            } else {
+                notificationWithErrorRepository.deleteByIdAgravoAndDataNotificationIn(entry.getKey(), dates);
+            }
+        }
     }
 
     public String categorizeError(NotificationWithError n) {

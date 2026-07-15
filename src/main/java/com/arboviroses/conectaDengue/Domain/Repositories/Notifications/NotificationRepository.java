@@ -55,6 +55,22 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     @Modifying
     @Transactional
-    @Query("DELETE FROM Notification n WHERE n.dataNotification IN :dates")
-    void deleteByDataNotificationIn(@Param("dates") Collection<Date> dates);
+    @Query("""
+        DELETE FROM Notification n
+        WHERE n.idAgravo = :idAgravo
+        AND n.dataNotification IN :dates
+        """)
+    void deleteByIdAgravoAndDataNotificationIn(
+        @Param("idAgravo") String idAgravo,
+        @Param("dates") Collection<Date> dates
+    );
+
+    @Modifying
+    @Transactional
+    @Query("""
+        DELETE FROM Notification n
+        WHERE n.idAgravo IS NULL
+        AND n.dataNotification IN :dates
+        """)
+    void deleteByIdAgravoIsNullAndDataNotificationIn(@Param("dates") Collection<Date> dates);
 }
