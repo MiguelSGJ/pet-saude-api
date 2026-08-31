@@ -31,7 +31,7 @@ public class Lira {
     @Column(name = "total_depositos_positivos")
     private Integer totalDepositosPos;
 
-    private double indiceBreteau;
+    private Double indiceBreteau;
     private int ano;
     private Integer liraNumber;
 
