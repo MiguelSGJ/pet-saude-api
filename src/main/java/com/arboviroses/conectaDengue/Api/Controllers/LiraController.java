@@ -26,7 +26,7 @@ public class LiraController {
     @PostMapping("/upload")
     public ResponseEntity<List<Lira>> uploadLiraFile(@RequestParam("file") MultipartFile file, 
                                                      @RequestParam("ano") @Min(2000) @Max(2100) Integer ano,
-                                                     @RequestParam("liraNumber") @Min(1) @Max(4) Integer liraNumber) {
+                                                     @RequestParam("liraNumber") @Min(1) @Max(6) Integer liraNumber) {
         UploadValidator.validate(file, UploadValidator.MAX_UPLOAD_BYTES, "xlsx");
         try {
             List<Lira> savedData = liraService.saveLiraData(file, ano, liraNumber);
@@ -44,7 +44,7 @@ public class LiraController {
 
     @GetMapping("/filter")
     public ResponseEntity<List<Lira>> getLiraByAnoAndNumber(@RequestParam("ano") @Min(2000) @Max(2100) Integer ano,
-                                                           @RequestParam("liraNumber") @Min(1) @Max(4) Integer liraNumber) {
+                                                           @RequestParam("liraNumber") @Min(1) @Max(6) Integer liraNumber) {
         List<Lira> liraData = liraService.getLiraByAnoAndNumber(ano, liraNumber);
         return ResponseEntity.ok(liraData);
     }

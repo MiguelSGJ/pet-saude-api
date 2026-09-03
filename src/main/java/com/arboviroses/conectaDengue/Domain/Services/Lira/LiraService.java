@@ -5,6 +5,8 @@ import com.arboviroses.conectaDengue.Domain.Repositories.Lira.LiraRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -13,10 +15,13 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
 public class LiraService {
+
+    private static final Logger log = LoggerFactory.getLogger(LiraService.class);
 
     private final LiraRepository liraRepository;
 
@@ -34,15 +39,16 @@ public class LiraService {
             if (rowIterator.hasNext()) rowIterator.next();
             if (rowIterator.hasNext()) rowIterator.next();
 
+            int descartadas = 0;
             while (rowIterator.hasNext()) {
                 Row row = rowIterator.next();
                 Lira lira = new Lira();
 
                 try {
                     String bairro = getCellValueAsString(row.getCell(1));
-                    if (bairro == null || bairro.trim().isEmpty() || bairro.toLowerCase().contains("estrato")) {
-                        continue;
-                    }
+                    if (bairro == null) continue;
+                    bairro = bairro.trim();
+                    if (bairro.isEmpty() || pareceCabecalho(bairro)) continue;
                     lira.setBairro(bairro);
 
                     lira.setTotalImoveisInsp(getCellValueAsInt(row.getCell(2)));
@@ -62,11 +68,19 @@ public class LiraService {
 
                     liras.add(lira);
                 } catch (Exception e) {
-                    System.err.println("Erro ao processar linha do LIRA: " + row.getRowNum() + " - " + e.getMessage());
+                    descartadas++;
+                    log.warn("LIRA {}/ciclo {}: linha {} descartada - {}", ano, liraNumber, row.getRowNum() + 1, e.toString());
                 }
             }
+            log.info("LIRA {}/ciclo {}: {} salvas, {} descartadas", ano, liraNumber, liras.size(), descartadas);
         }
         return liraRepository.saveAll(liras);
+    }
+
+    private boolean pareceCabecalho(String valor) {
+        String v = valor.toLowerCase(Locale.ROOT);
+        return v.contains("estrato") || v.contains("bairro") || v.contains("ciclo")
+            || v.contains("total")   || v.equals("data")     || v.startsWith("zona ");
     }
 
     public List<Lira> getLiraByAno(Integer ano) {
@@ -77,45 +91,38 @@ public class LiraService {
         return liraRepository.findByAnoAndLiraNumber(ano, liraNumber);
     }
 
+    private CellType tipoEfetivo(Cell cell) {
+        return cell.getCellType() == CellType.FORMULA
+                ? cell.getCachedFormulaResultType()
+                : cell.getCellType();
+    }
+
     private String getCellValueAsString(Cell cell) {
         if (cell == null) return null;
-        switch (cell.getCellType()) {
-            case STRING:
-                return cell.getStringCellValue();
-            case NUMERIC:
-                return String.valueOf(cell.getNumericCellValue());
-            default:
-                return null;
-        }
+        CellType tipo = tipoEfetivo(cell);
+        if (tipo == CellType.STRING) return cell.getStringCellValue();
+        if (tipo == CellType.NUMERIC) return String.valueOf(cell.getNumericCellValue());
+        return null;
     }
 
     private Integer getCellValueAsInt(Cell cell) {
-        if (cell == null) return null;
-        if (cell.getCellType() == CellType.NUMERIC) {
-            return (int) cell.getNumericCellValue();
-        }
-        if (cell.getCellType() == CellType.STRING) {
-            try {
-                return Integer.parseInt(cell.getStringCellValue());
-            } catch (NumberFormatException e) {
-                return null;
-            }
-        }
-        return null;
+        Double valor = getCellValueAsDouble(cell);
+        return valor == null ? null : (int) Math.round(valor);
     }
 
     private Double getCellValueAsDouble(Cell cell) {
         if (cell == null) return null;
-        if (cell.getCellType() == CellType.NUMERIC) {
-            return cell.getNumericCellValue();
-        }
-        if (cell.getCellType() == CellType.STRING) {
+        CellType tipo = tipoEfetivo(cell);
+        if (tipo == CellType.NUMERIC) return cell.getNumericCellValue();
+        if (tipo == CellType.STRING) {
+            String bruto = cell.getStringCellValue().trim().replace(",", ".");
+            if (bruto.isEmpty()) return null;
             try {
-                return Double.parseDouble(cell.getStringCellValue());
+                return Double.parseDouble(bruto);
             } catch (NumberFormatException e) {
                 return null;
             }
         }
-        return null;
+        return null;   // BLANK, BOOLEAN, ERROR (#DIV/0!, #VALUE!)
     }
 }
