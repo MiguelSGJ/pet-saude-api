@@ -144,6 +144,63 @@ CORRECOES: dict[tuple, tuple] = {
     (2023, 4, "Alto do Sumaré", "Indice Breteau"):
         (2.8, "A2=13 e o total gravado (13) concordam; 100*13/458=2.84, entao o Breteau digitado (3.6) e o errado."),
 
+    # --- Revisão dos avisos de 2024/2025 (RELATORIO_2024_2025.txt) ---
+    # Mesma regra: quando contagem detalhada e total concordam, o indice e recalculado;
+    # quando contagem detalhada e indice concordam, o total agregado e corrigido.
+
+    (2024, 6, "Boa Vista", "Indice Breteau"):
+        (1.1, "A2+B=2 e o total gravado (2) concordam; 100*2/186=1.08, entao o Breteau digitado (2.1) e o errado."),
+    (2024, 6, "Dom Jaime Câmara", "Indice Infestacao Predial"):
+        (3.3, "TotalPos=8 e TotalInsp=243 -> 100*8/243=3.29; o IIP digitado (1.3) nao fecha com as contagens."),
+    (2024, 5, "Boa Vista", "Indice Breteau"):
+        (5.9, "A2+B=11 e o total gravado (11) concordam; 100*11/187=5.88, entao o Breteau digitado (4.6) e o errado."),
+    (2024, 4, "Alto da Conceição", "Indice Infestacao Predial"):
+        (1.1, "TotalPos=1 e TotalInsp=90 -> 100*1/90=1.11; o IIP digitado (0.4) e o errado."),
+    (2024, 4, "Alto da Conceição", "Indice Breteau"):
+        (1.1, "A2=1 e o total gravado (1) concordam; 100*1/90=1.11, entao o Breteau digitado (0.4) e o errado."),
+    (2024, 2, "Alto de São Manoel", "Indice Breteau"):
+        (2.2, "A2+D1=8 e o total gravado (8) concordam; 100*8/362=2.21, entao o Breteau digitado (3.2) e o errado."),
+    (2024, 2, "Pintos", "Indice Infestacao Predial"):
+        (14.3, "TotalPos=6 e TotalInsp=42 -> 100*6/42=14.29; o IIP digitado (12.0) e o errado."),
+    (2024, 2, "Pintos", "Indice Breteau"):
+        (14.3, "A2+B=6 e o total gravado (6) concordam; 100*6/42=14.29, entao o Breteau digitado (12.5) e o errado."),
+    (2024, 2, "Redenção", "Indice Breteau"):
+        (16.3, "A2+B+C=14 e o total gravado (14) concordam; 100*14/86=16.28, entao o Breteau digitado (14.1) e o errado."),
+    (2024, 2, "Bom Jesus", "Indice Breteau"):
+        (9.1, "A2=2 e o total gravado (2) concordam; 100*2/22=9.09, entao o Breteau digitado (5.1) e o errado."),
+    (2024, 2, "Alto do Sumaré", "Indice Breteau"):
+        (4.8, "A2=21 e o total gravado (21) concordam; 100*21/441=4.76, entao o Breteau digitado (3.2) e o errado."),
+
+    (2025, 5, "Pintos", "Indice Breteau"):
+        (0.0, "Todos os depositos e o total gravado sao 0; 100*0/1=0.00, entao o Breteau digitado (3.2) e o errado."),
+    (2025, 5, "Presidente Costa e Silva", "Indice Breteau"):
+        (1.7, "A2=4 e o total gravado (4) concordam; 100*4/241=1.66, entao o Breteau digitado (14.0) e o errado."),
+    (2025, 5, "Santo Antônio", "Indice Breteau"):
+        (7.5, "A2=33 e o total gravado (33) concordam; 100*33/442=7.47, entao o Breteau digitado (6.8) e o errado."),
+    (2025, 5, "Alto do Sumaré", "Total Depositos Positivos"):
+        (17, "A2=17 e Breteau=3.7 concordam (100*17/464=3.66); o total agregado digitado (34) e o errado."),
+    (2025, 4, "Dix-Sept Rosado", "Total Depositos Positivos"):
+        (4, "A2=4 e Breteau=5.7 concordam (100*4/70=5.71); o total agregado digitado (6) e o errado."),
+    (2025, 4, "Bom Jardim", "Indice Breteau"):
+        (7.6, "A2+D2=18 e o total gravado (18) concordam; 100*18/237=7.59, entao o Breteau digitado (5.2) e o errado."),
+    (2025, 4, "Santa Delmira", "Indice Infestacao Predial"):
+        (0.7, "TotalPos=3 e TotalInsp=435 -> 100*3/435=0.69; o IIP digitado (6.9) esta dez vezes acima."),
+    (2025, 4, "Santa Delmira", "Indice Breteau"):
+        (0.7, "A2=3 e o total gravado (3) concordam; 100*3/435=0.69, e o Breteau digitado (6.9) esta dez vezes acima."),
+    (2025, 4, "Alto da Conceição", "Total Depositos Positivos"):
+        (1, "A2=1 e Breteau=0.9 concordam (100*1/107=0.93); o total agregado digitado (0) e o errado."),
+
+    # Sem fonte confiavel para escolher 353 ou 350. A ausencia explicita e mais segura
+    # que manter o outlier ou inventar uma contagem; preencha quando a Secretaria confirmar.
+    (2025, 1, "Alto de São Manoel", "Total Imoveis Inspecionados"):
+        (None, "planilha trazia 35306, valor incompatível com os demais bairros; mantido NULL ate confirmacao oficial."),
+
+    # Pendentes de confirmacao humana, portanto preservados como vieram da fonte:
+    # - 2024 C5, Aeroporto: TotalPos='15+1 alb...' e Deposito B='3(1)'.
+    # - 2024 C2, Alto da Conceicao: soma dos depositos, total e Breteau divergem.
+    # - 2025 C1, Pintos: soma dos depositos, total e Breteau divergem.
+    # - 2025 C5, Planalto Treze de Maio: soma dos depositos, total e Breteau divergem.
+
     # Nao corrigidos - decisao consciente: sem amostragem, fica vazio (NULL), nunca 0.
     # (2022, 2, "Alagados") | (2022, 3, "Alagados") | (2023, 6, "Alagados"): linha inteira vazia.
 }
