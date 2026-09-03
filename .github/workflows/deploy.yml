@@ -41,6 +41,39 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
+            set -euo pipefail
             cd /root/arboviroses/ArbovirosesBack
+
             docker compose pull backend
             docker compose up -d backend --no-deps
+
+            # Antes o deploy terminava aqui, sem verificar nada: um backend que
+            # subisse e morresse no boot (falha de conexao com o banco, migration
+            # quebrada) deixava o job verde. O backend nao publica porta, entao a
+            # verificacao passa pelo proxy do frontend — que e exatamente o
+            # caminho que o navegador usa.
+            PORT=$(grep -E '^PUBLIC_PORT=' .env.docker 2>/dev/null | cut -d= -f2 || true)
+            PORT=${PORT:-8080}
+
+            for _ in $(seq 1 45); do
+              # Credenciais invalidas de proposito: 400/401 ja prova que o backend
+              # esta vivo e respondendo. So 000 (sem resposta) ou 5xx reprovam.
+              CODE=$(curl -s -o /dev/null -w '%{http_code}' \
+                -X POST "http://localhost:${PORT}/api/auth/login" \
+                -H 'Content-Type: application/json' \
+                -d '{"cpf":"00000000000","password":"invalido"}' || echo 000)
+
+              case "$CODE" in
+                400|401|403|422)
+                  echo "OK: backend respondendo (HTTP ${CODE})"
+                  exit 0
+                  ;;
+              esac
+
+              sleep 2
+            done
+
+            echo "ERRO: backend nao respondeu em 90s apos o deploy (ultimo HTTP ${CODE})" >&2
+            docker compose ps backend >&2
+            docker compose logs --tail=50 backend >&2
+            exit 1
