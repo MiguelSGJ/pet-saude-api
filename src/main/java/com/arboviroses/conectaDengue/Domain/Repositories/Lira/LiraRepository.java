@@ -15,6 +15,10 @@ public interface LiraRepository extends JpaRepository<Lira, Long> {
     List<Lira> findByAno(Integer ano);
     List<Lira> findByBairroAndAno(String bairro, Integer ano);
     List<Lira> findByAnoAndLiraNumber(Integer ano, Integer liraNumber);
+
+    @Query("SELECT DISTINCT l.ano, l.liraNumber FROM Lira l " +
+           "WHERE l.liraNumber IS NOT NULL ORDER BY l.ano DESC, l.liraNumber DESC")
+    List<Object[]> findDisponibilidade();
     
     @Modifying
     @Transactional

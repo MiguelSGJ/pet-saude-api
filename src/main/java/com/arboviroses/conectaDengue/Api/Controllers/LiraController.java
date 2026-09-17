@@ -1,5 +1,6 @@
 package com.arboviroses.conectaDengue.Api.Controllers;
 
+import com.arboviroses.conectaDengue.Api.DTO.response.LiraDisponibilidadeResponse;
 import com.arboviroses.conectaDengue.Domain.Entities.Lira.Lira;
 import com.arboviroses.conectaDengue.Domain.Services.Lira.LiraService;
 import com.arboviroses.conectaDengue.Api.Validation.UploadValidator;
@@ -47,5 +48,10 @@ public class LiraController {
                                                            @RequestParam("liraNumber") @Min(1) @Max(6) Integer liraNumber) {
         List<Lira> liraData = liraService.getLiraByAnoAndNumber(ano, liraNumber);
         return ResponseEntity.ok(liraData);
+    }
+
+    @GetMapping("/available")
+    public ResponseEntity<List<LiraDisponibilidadeResponse>> getDisponibilidade() {
+        return ResponseEntity.ok(liraService.getDisponibilidade());
     }
 }

@@ -1,5 +1,6 @@
 package com.arboviroses.conectaDengue.Domain.Services.Lira;
 
+import com.arboviroses.conectaDengue.Api.DTO.response.LiraDisponibilidadeResponse;
 import com.arboviroses.conectaDengue.Domain.Entities.Lira.Lira;
 import com.arboviroses.conectaDengue.Domain.Repositories.Lira.LiraRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,8 +15,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -89,6 +92,20 @@ public class LiraService {
 
     public List<Lira> getLiraByAnoAndNumber(Integer ano, Integer liraNumber) {
         return liraRepository.findByAnoAndLiraNumber(ano, liraNumber);
+    }
+
+    public List<LiraDisponibilidadeResponse> getDisponibilidade() {
+        Map<Integer, List<Integer>> ciclosPorAno = new LinkedHashMap<>();
+
+        for (Object[] item : liraRepository.findDisponibilidade()) {
+            Integer ano = ((Number) item[0]).intValue();
+            Integer ciclo = ((Number) item[1]).intValue();
+            ciclosPorAno.computeIfAbsent(ano, ignored -> new ArrayList<>()).add(ciclo);
+        }
+
+        return ciclosPorAno.entrySet().stream()
+                .map(entry -> new LiraDisponibilidadeResponse(entry.getKey(), entry.getValue()))
+                .toList();
     }
 
     private CellType tipoEfetivo(Cell cell) {

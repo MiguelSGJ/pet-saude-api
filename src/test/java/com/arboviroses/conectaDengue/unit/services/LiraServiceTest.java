@@ -149,4 +149,23 @@ class LiraServiceTest {
         assertThat(salvos).hasSize(30);
         verify(repository).deleteByAnoAndLiraNumber(2022, 1);
     }
+
+    @Test
+    void disponibilidadeAgrupaCiclosPorAnoDoMaisRecenteParaOMaisAntigo() {
+        LiraRepository repository = mockRepository();
+        when(repository.findDisponibilidade()).thenReturn(List.of(
+                new Object[]{2025, 6},
+                new Object[]{2025, 4},
+                new Object[]{2024, 5}
+        ));
+
+        LiraService service = new LiraService(repository);
+        var disponibilidade = service.getDisponibilidade();
+
+        assertThat(disponibilidade).hasSize(2);
+        assertThat(disponibilidade.get(0).ano()).isEqualTo(2025);
+        assertThat(disponibilidade.get(0).ciclos()).containsExactly(6, 4);
+        assertThat(disponibilidade.get(1).ano()).isEqualTo(2024);
+        assertThat(disponibilidade.get(1).ciclos()).containsExactly(5);
+    }
 }
