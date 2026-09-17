@@ -1,6 +1,10 @@
 package com.arboviroses.conectaDengue.Domain.Services.Lira;
 
+import com.arboviroses.conectaDengue.Api.DTO.response.LiraDisponibilidadeResponse;
+import com.arboviroses.conectaDengue.Api.DTO.response.LiraParametrosResponse;
 import com.arboviroses.conectaDengue.Domain.Entities.Lira.Lira;
+import com.arboviroses.conectaDengue.Domain.Entities.Lira.LiraParametros;
+import com.arboviroses.conectaDengue.Domain.Repositories.Lira.LiraParametrosRepository;
 import com.arboviroses.conectaDengue.Domain.Repositories.Lira.LiraRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
@@ -8,24 +12,38 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class LiraService {
 
     private static final Logger log = LoggerFactory.getLogger(LiraService.class);
+    public static final double LIMITE_ALERTA_PADRAO = 1.0;
+    public static final double LIMITE_RISCO_PADRAO = 4.0;
 
     private final LiraRepository liraRepository;
+    private final LiraParametrosRepository liraParametrosRepository;
 
-    public List<Lira> saveLiraData(MultipartFile file, Integer ano, Integer liraNumber) throws IOException {
+    @Transactional(rollbackFor = Exception.class)
+    public List<Lira> saveLiraData(
+            MultipartFile file,
+            Integer ano,
+            Integer liraNumber,
+            Double limiteAlerta,
+            Double limiteRisco
+    ) throws IOException {
+        validarLimites(limiteAlerta, limiteRisco);
         // Primeiro, remove todos os dados existentes para o ano e número do LIRA especificados
         liraRepository.deleteByAnoAndLiraNumber(ano, liraNumber);
         
@@ -74,7 +92,27 @@ public class LiraService {
             }
             log.info("LIRA {}/ciclo {}: {} salvas, {} descartadas", ano, liraNumber, liras.size(), descartadas);
         }
-        return liraRepository.saveAll(liras);
+        List<Lira> salvos = liraRepository.saveAll(liras);
+        salvarParametros(ano, liraNumber, limiteAlerta, limiteRisco);
+        return salvos;
+    }
+
+    private void validarLimites(Double limiteAlerta, Double limiteRisco) {
+        if (limiteAlerta == null || limiteRisco == null
+                || !Double.isFinite(limiteAlerta) || !Double.isFinite(limiteRisco)
+                || limiteAlerta < 0 || limiteRisco <= limiteAlerta) {
+            throw new IllegalArgumentException("O limite de risco deve ser maior que o limite de alerta, e ambos devem ser positivos.");
+        }
+    }
+
+    private void salvarParametros(Integer ano, Integer liraNumber, Double limiteAlerta, Double limiteRisco) {
+        LiraParametros parametros = liraParametrosRepository.findByAnoAndLiraNumber(ano, liraNumber)
+                .orElseGet(LiraParametros::new);
+        parametros.setAno(ano);
+        parametros.setLiraNumber(liraNumber);
+        parametros.setLimiteAlerta(limiteAlerta);
+        parametros.setLimiteRisco(limiteRisco);
+        liraParametrosRepository.save(parametros);
     }
 
     private boolean pareceCabecalho(String valor) {
@@ -89,6 +127,46 @@ public class LiraService {
 
     public List<Lira> getLiraByAnoAndNumber(Integer ano, Integer liraNumber) {
         return liraRepository.findByAnoAndLiraNumber(ano, liraNumber);
+    }
+
+    public List<LiraDisponibilidadeResponse> getDisponibilidade() {
+        Map<Integer, List<Integer>> ciclosPorAno = new LinkedHashMap<>();
+
+        for (Object[] item : liraRepository.findDisponibilidade()) {
+            Integer ano = ((Number) item[0]).intValue();
+            Integer ciclo = ((Number) item[1]).intValue();
+            ciclosPorAno.computeIfAbsent(ano, ignored -> new ArrayList<>()).add(ciclo);
+        }
+
+        return ciclosPorAno.entrySet().stream()
+                .map(entry -> new LiraDisponibilidadeResponse(entry.getKey(), entry.getValue()))
+                .toList();
+    }
+
+    public LiraParametrosResponse getParametros(Integer ano, Integer liraNumber) {
+        return liraParametrosRepository.findByAnoAndLiraNumber(ano, liraNumber)
+                .map(this::toResponse)
+                .orElse(new LiraParametrosResponse(
+                        ano,
+                        liraNumber,
+                        LIMITE_ALERTA_PADRAO,
+                        LIMITE_RISCO_PADRAO
+                ));
+    }
+
+    public List<LiraParametrosResponse> getParametrosPorAno(Integer ano) {
+        return liraParametrosRepository.findByAnoOrderByLiraNumberAsc(ano).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    private LiraParametrosResponse toResponse(LiraParametros parametros) {
+        return new LiraParametrosResponse(
+                parametros.getAno(),
+                parametros.getLiraNumber(),
+                parametros.getLimiteAlerta(),
+                parametros.getLimiteRisco()
+        );
     }
 
     private CellType tipoEfetivo(Cell cell) {
