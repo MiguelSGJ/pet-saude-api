@@ -1,6 +1,7 @@
 package com.arboviroses.conectaDengue.Api.Controllers;
 
 import com.arboviroses.conectaDengue.Api.DTO.response.LiraDisponibilidadeResponse;
+import com.arboviroses.conectaDengue.Api.DTO.response.LiraParametrosResponse;
 import com.arboviroses.conectaDengue.Domain.Entities.Lira.Lira;
 import com.arboviroses.conectaDengue.Domain.Services.Lira.LiraService;
 import com.arboviroses.conectaDengue.Api.Validation.UploadValidator;
@@ -15,6 +16,7 @@ import java.util.List;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.DecimalMin;
 
 @RestController
 @RequestMapping("/api/lira")
@@ -27,12 +29,18 @@ public class LiraController {
     @PostMapping("/upload")
     public ResponseEntity<List<Lira>> uploadLiraFile(@RequestParam("file") MultipartFile file, 
                                                      @RequestParam("ano") @Min(2000) @Max(2100) Integer ano,
-                                                     @RequestParam("liraNumber") @Min(1) @Max(6) Integer liraNumber) {
+                                                     @RequestParam("liraNumber") @Min(1) @Max(6) Integer liraNumber,
+                                                     @RequestParam(value = "limiteAlerta", defaultValue = "1.0")
+                                                     @DecimalMin("0.0") Double limiteAlerta,
+                                                     @RequestParam(value = "limiteRisco", defaultValue = "4.0")
+                                                     @DecimalMin("0.0") Double limiteRisco) {
         UploadValidator.validate(file, UploadValidator.MAX_UPLOAD_BYTES, "xlsx");
         try {
-            List<Lira> savedData = liraService.saveLiraData(file, ano, liraNumber);
+            List<Lira> savedData = liraService.saveLiraData(
+                    file, ano, liraNumber, limiteAlerta, limiteRisco
+            );
             return ResponseEntity.ok(savedData);
-        } catch (IOException e) {
+        } catch (IOException | IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         }
     }
@@ -53,5 +61,20 @@ public class LiraController {
     @GetMapping("/available")
     public ResponseEntity<List<LiraDisponibilidadeResponse>> getDisponibilidade() {
         return ResponseEntity.ok(liraService.getDisponibilidade());
+    }
+
+    @GetMapping("/parametros")
+    public ResponseEntity<LiraParametrosResponse> getParametros(
+            @RequestParam("ano") @Min(2000) @Max(2100) Integer ano,
+            @RequestParam("liraNumber") @Min(1) @Max(6) Integer liraNumber
+    ) {
+        return ResponseEntity.ok(liraService.getParametros(ano, liraNumber));
+    }
+
+    @GetMapping("/parametros/ano")
+    public ResponseEntity<List<LiraParametrosResponse>> getParametrosPorAno(
+            @RequestParam("ano") @Min(2000) @Max(2100) Integer ano
+    ) {
+        return ResponseEntity.ok(liraService.getParametrosPorAno(ano));
     }
 }
