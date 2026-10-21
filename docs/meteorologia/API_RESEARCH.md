@@ -1,13 +1,14 @@
 # Pesquisa de APIs meteorológicas
 
 **Data da pesquisa:** 20/10/2026  
+**Atualização dos critérios de concordância:** 21/10/2026
 **Local do ensaio:** Mossoró/RN (`-5.1875`, `-37.3442`)  
 **Período avaliado:** 20/10/2024 a 19/10/2026 (730 dias completos)  
 **Variáveis:** precipitação diária, umidade relativa média e velocidade média do vento a 10 m
 
 ## Objetivo
 
-Selecionar no mínimo duas fontes independentes capazes de enriquecer as notificações epidemiológicas com dados meteorológicos diários e alcançar cobertura combinada superior a 90%.
+Selecionar no mínimo duas fontes independentes capazes de enriquecer as notificações epidemiológicas com dados meteorológicos diários, alcançar cobertura combinada superior a 90% e manter divergência agregada aceitável entre os valores retornados.
 
 ## Fontes pesquisadas
 
@@ -86,6 +87,28 @@ O único dia ausente na NASA foi 19/10/2026, compatível com a defasagem próxim
 
 As diferenças não significam necessariamente erro: os provedores usam modelos, grades e métodos distintos. Por isso, os valores não serão calculados pela média entre fontes. A Open-Meteo será a fonte primária; a NASA será armazenada como fonte independente de comparação e utilizada como fallback quando a primária estiver ausente ou inválida.
 
+### Critério de concordância para seleção
+
+A seleção não considerou somente completude. Além dos 729 pares diários, foram usados erro absoluto médio, viés e correlação. Para tornar “não divergir muito” uma regra verificável, foram adotados os seguintes limites agregados para o ensaio piloto:
+
+| Variável | Limite de erro absoluto médio | Correlação mínima | Resultado observado | Decisão |
+|---|---:|---:|---:|---|
+| Precipitação | ≤ 3 mm | ≥ 0,60 | 1,713 mm / 0,634 | Aprovada, com cautela para eventos diários localizados |
+| Umidade relativa | ≤ 5 p.p. | ≥ 0,85 | 4,116 p.p. / 0,912 | Aprovada |
+| Vento a 10 m | ≤ 10 km/h | ≥ 0,85 | 9,202 km/h / 0,908 | Aprovada, com viés sistemático monitorado |
+
+As três variáveis passaram pelo gate agregado. Isso não significa que todo dia terá valores próximos. Precipitação diária é especialmente sensível à grade e ao horário do evento; a própria validação da NASA mostra desempenho inferior para precipitação diária em comparação com agregações maiores. O vento apresentou boa correlação, mas um deslocamento sistemático relevante, coerente com diferenças de grade, rugosidade e modelagem.
+
+### Controle operacional por registro
+
+Cada linha diária em que os dois provedores possuem valor será comparada e armazenará a diferença absoluta. Os limites iniciais, configuráveis por ambiente, são:
+
+- precipitação: divergente quando a diferença for maior que `10 mm/dia`;
+- umidade relativa: divergente quando a diferença for maior que `10 pontos percentuais`;
+- vento a 10 m: divergente quando a diferença for maior que `15 km/h`.
+
+O painel mede a proporção de pares dentro desses limites, com meta operacional de pelo menos 90% de concordância. Um valor divergente não será descartado nem misturado por média, pois nenhuma das duas reanálises representa verdade observacional por si só. O sistema mantém a Open-Meteo como fonte final primária, preserva os dois valores e sinaliza a divergência para auditoria. Se a concordância cair abaixo de 90%, a fonte e o período devem ser revisados antes de usar os dados em análises epidemiológicas sensíveis.
+
 ## Descoberta crítica na NASA POWER
 
 Ao solicitar `PRECTOTCORR`, `RH2M` e `WS10M` juntos para o intervalo completo, a precipitação retornou valores incompatíveis com consultas isoladas do mesmo dia. Consultas contendo somente `PRECTOTCORR` produziram valores plausíveis e coerentes com a unidade declarada (`mm/day`). Umidade e vento não apresentaram essa diferença.
@@ -114,4 +137,6 @@ Usar:
 3. **INMET como referência observacional de auditoria**, sem dependência operacional nesta fase.
 
 O sistema deve armazenar os valores de cada provedor e o valor final selecionado, com data, bairro, coordenadas, unidade, fonte e horário da coleta. A completude será recalculada após cada execução e deve permanecer acima de 90% por variável.
+
+A concordância entre os provedores também será recalculada após cada execução. O requisito de qualidade passa a ser duplo: completude superior a 90% e concordância operacional de pelo menos 90% entre os pares disponíveis, conforme limites configuráveis por variável.
 

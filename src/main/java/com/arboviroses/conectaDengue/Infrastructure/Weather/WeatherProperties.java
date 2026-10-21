@@ -22,6 +22,9 @@ public class WeatherProperties {
     private long retryBackoffMillis = 1_000;
     private double maxDailyPrecipitationMm = 500;
     private double maxWindSpeedKmh = 300;
+    private double maxPrecipitationProviderDifferenceMm = 10;
+    private double maxHumidityProviderDifferencePctPoints = 10;
+    private double maxWindProviderDifferenceKmh = 15;
     private long jobLockSeconds = 86_400;
     private String openMeteoBaseUrl = "https://archive-api.open-meteo.com/v1/archive";
     private String nasaPowerBaseUrl = "https://power.larc.nasa.gov/api/temporal/daily/point";

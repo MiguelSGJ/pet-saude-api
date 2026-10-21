@@ -144,6 +144,7 @@ public class WeatherEnrichmentService {
             applyOpenMeteo(row, openMeteo, fetchedAt);
             applyNasaPower(row, nasaPower, fetchedAt);
             consolidate(row);
+            compareProviders(row);
             row.setLastError(errorMessage.isBlank() ? null : errorMessage);
             row.setUpdatedAt(OffsetDateTime.now());
 
@@ -222,6 +223,44 @@ public class WeatherEnrichmentService {
         row.setPrecipitationSource(source(row.getOpenMeteoPrecipitationMm(), row.getNasaPowerPrecipitationMm()));
         row.setHumiditySource(source(row.getOpenMeteoRelativeHumidityPct(), row.getNasaPowerRelativeHumidityPct()));
         row.setWindSource(source(row.getOpenMeteoWindSpeedKmh(), row.getNasaPowerWindSpeedKmh()));
+    }
+
+    private void compareProviders(WeatherDaily row) {
+        row.setPrecipitationProviderDifferenceMm(absoluteDifference(
+            row.getOpenMeteoPrecipitationMm(), row.getNasaPowerPrecipitationMm()
+        ));
+        row.setHumidityProviderDifferencePctPoints(absoluteDifference(
+            row.getOpenMeteoRelativeHumidityPct(), row.getNasaPowerRelativeHumidityPct()
+        ));
+        row.setWindProviderDifferenceKmh(absoluteDifference(
+            row.getOpenMeteoWindSpeedKmh(), row.getNasaPowerWindSpeedKmh()
+        ));
+
+        row.setPrecipitationDivergent(exceeds(
+            row.getPrecipitationProviderDifferenceMm(), properties.getMaxPrecipitationProviderDifferenceMm()
+        ));
+        row.setHumidityDivergent(exceeds(
+            row.getHumidityProviderDifferencePctPoints(), properties.getMaxHumidityProviderDifferencePctPoints()
+        ));
+        row.setWindDivergent(exceeds(
+            row.getWindProviderDifferenceKmh(), properties.getMaxWindProviderDifferenceKmh()
+        ));
+
+        boolean hasComparison = row.getPrecipitationDivergent() != null
+            || row.getHumidityDivergent() != null
+            || row.getWindDivergent() != null;
+        boolean hasDivergence = Boolean.TRUE.equals(row.getPrecipitationDivergent())
+            || Boolean.TRUE.equals(row.getHumidityDivergent())
+            || Boolean.TRUE.equals(row.getWindDivergent());
+        row.setComparisonStatus(hasDivergence ? "DIVERGENT" : hasComparison ? "AGREEMENT" : "UNAVAILABLE");
+    }
+
+    private Double absoluteDifference(Double left, Double right) {
+        return left == null || right == null ? null : Math.abs(left - right);
+    }
+
+    private Boolean exceeds(Double difference, double threshold) {
+        return difference == null ? null : difference > threshold;
     }
 
     private Double first(Double primary, Double secondary) {

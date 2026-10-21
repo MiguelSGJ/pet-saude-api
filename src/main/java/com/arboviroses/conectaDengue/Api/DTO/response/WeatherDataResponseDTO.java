@@ -11,6 +11,13 @@ public record WeatherDataResponseDTO(
     String precipitationSource,
     String humiditySource,
     String windSource,
+    Double precipitationProviderDifferenceMm,
+    Double humidityProviderDifferencePctPoints,
+    Double windProviderDifferenceKmh,
+    Boolean precipitationDivergent,
+    Boolean humidityDivergent,
+    Boolean windDivergent,
+    String comparisonStatus,
     String status
 ) {
     public static WeatherDataResponseDTO from(WeatherDaily weather) {
@@ -25,6 +32,13 @@ public record WeatherDataResponseDTO(
             weather.getPrecipitationSource(),
             weather.getHumiditySource(),
             weather.getWindSource(),
+            weather.getPrecipitationProviderDifferenceMm(),
+            weather.getHumidityProviderDifferencePctPoints(),
+            weather.getWindProviderDifferenceKmh(),
+            weather.getPrecipitationDivergent(),
+            weather.getHumidityDivergent(),
+            weather.getWindDivergent(),
+            weather.getComparisonStatus(),
             weather.getStatus()
         );
     }

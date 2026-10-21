@@ -2,11 +2,12 @@
 
 **Criada em:** 20/10/2026  
 **Pontuação de ambiguidade:** 0,19 (limite: ≤ 0,20)  
-**Requisitos:** 13 bloqueados
+**Atualizada em:** 21/10/2026
+**Requisitos:** 14 bloqueados
 
 ## Objetivo
 
-Associar automaticamente todas as notificações existentes e futuras a dados diários de precipitação, umidade relativa e vento do seu bairro, alcançando cobertura combinada superior a 90% com Open-Meteo e NASA POWER.
+Associar automaticamente todas as notificações existentes e futuras a dados diários de precipitação, umidade relativa e vento do seu bairro, alcançando cobertura combinada superior a 90% e concordância operacional de pelo menos 90% entre Open-Meteo e NASA POWER.
 
 ## Estado atual
 
@@ -23,6 +24,7 @@ Associar automaticamente todas as notificações existentes e futuras a dados di
 - Escopo histórico: desde a menor data de referência encontrada nas notificações existentes.
 - Provedores: Open-Meteo primário e NASA POWER secundário.
 - Consolidação: usar valor válido da fonte primária e recorrer à secundária apenas quando necessário; não calcular média entre modelos.
+- Concordância: comparar valores quando ambos existirem, armazenar diferenças e sinalizar limites excedidos sem trocar silenciosamente a fonte final.
 - Periodicidade: processar diariamente o último dia completo e revisar uma janela recente para absorver o atraso da NASA.
 
 ## Arquitetura
@@ -52,6 +54,7 @@ Endpoint administrativo ─> disparo/reprocessamento e consulta de status
 - fonte escolhida por variável;
 - horários da última coleta de cada provedor;
 - estado da consolidação e mensagem de erro, quando houver.
+- diferenças absolutas, flags por variável e estado de concordância entre os provedores.
 
 `notifications.weather_data_id` referenciará `weather_daily`. Várias notificações do mesmo bairro e dia compartilharão a mesma linha meteorológica.
 
@@ -140,6 +143,11 @@ Endpoint administrativo ─> disparo/reprocessamento e consulta de status
     - Alvo: nenhum segredo é necessário para os provedores selecionados; troca de endpoint não exige recompilação.
     - Aceite: testes carregam endpoints mockados por propriedades.
 
+14. **Concordância entre provedores**: medir divergência além da completude.
+    - Atual: os valores das duas fontes são armazenados, mas não existe classificação operacional da diferença.
+    - Alvo: calcular diferença absoluta por variável, sinalizar precipitação acima de 10 mm, umidade acima de 10 p.p. e vento acima de 15 km/h, com limites configuráveis.
+    - Aceite: o endpoint de cobertura informa pares comparados, divergentes, percentual de concordância e limites aplicados; o painel exibe meta mínima de 90%.
+
 ## Limites
 
 **Dentro do escopo:**
@@ -166,7 +174,7 @@ Endpoint administrativo ─> disparo/reprocessamento e consulta de status
 - Chamadas NASA de precipitação, umidade e vento devem ser separadas.
 - A rotina precisa respeitar limites e termos dos provedores.
 - Coordenadas ausentes impedem somente o bairro afetado e devem aparecer no status; não podem cair silenciosamente para o centro da cidade.
-- A cobertura mede campos preenchidos, não precisão meteorológica.
+- A cobertura mede campos preenchidos; a concordância mede proximidade entre modelos e não equivale a precisão observacional.
 
 ## Critérios de aceite
 
@@ -182,6 +190,8 @@ Endpoint administrativo ─> disparo/reprocessamento e consulta de status
 - [ ] Migrações sobem em banco existente e banco vazio.
 - [ ] Testes automatizados do módulo meteorológico passam.
 - [ ] Status e métricas permitem identificar cobertura e bairros pendentes.
+- [ ] Diferenças entre provedores ficam persistidas e auditáveis por variável.
+- [ ] O painel mostra concordância por período e alerta quando ficar abaixo de 90%.
 
 ## Relatório de ambiguidade
 

@@ -69,8 +69,60 @@ class WeatherEnrichmentServiceTest {
         assertEquals(65.0, saved.getRelativeHumidityPct());
         assertEquals("NASA_POWER", saved.getHumiditySource());
         assertEquals(13.0, saved.getWindSpeedKmh());
+        assertEquals(1.0, saved.getPrecipitationProviderDifferenceMm());
+        assertEquals(false, saved.getPrecipitationDivergent());
+        assertEquals(7.0, saved.getWindProviderDifferenceKmh());
+        assertEquals(false, saved.getWindDivergent());
+        assertEquals("AGREEMENT", saved.getComparisonStatus());
         assertEquals("COMPLETE", saved.getStatus());
         assertEquals(4, report.linkedNotifications());
+    }
+
+    @Test
+    void flagsProviderDifferencesAboveConfiguredThresholds() {
+        BairroRepository bairroRepository = mock(BairroRepository.class);
+        NotificationRepository notificationRepository = mock(NotificationRepository.class);
+        WeatherDailyRepository weatherRepository = mock(WeatherDailyRepository.class);
+        WeatherProviderClient openMeteo = client(WeatherProvider.OPEN_METEO);
+        WeatherProviderClient nasa = client(WeatherProvider.NASA_POWER);
+        WeatherProperties properties = new WeatherProperties();
+        LocalDate date = LocalDate.of(2026, 10, 19);
+
+        Bairro bairro = new Bairro();
+        bairro.setId(1L);
+        bairro.setNome("CENTRO");
+        bairro.setLatitude(-5.1920530);
+        bairro.setLongitude(-37.3413511);
+        when(bairroRepository.findAllReferencedByNotifications()).thenReturn(List.of(bairro));
+        when(weatherRepository.findByBairroIdAndWeatherDateBetween(1L, date, date)).thenReturn(List.of());
+        when(openMeteo.fetch(bairro.getLatitude(), bairro.getLongitude(), date, date)).thenReturn(Map.of(
+            date, new WeatherSample(date, 2.0, 60.0, 10.0)
+        ));
+        when(nasa.fetch(bairro.getLatitude(), bairro.getLongitude(), date, date)).thenReturn(Map.of(
+            date, new WeatherSample(date, 15.0, 75.0, 30.0)
+        ));
+
+        WeatherEnrichmentService service = new WeatherEnrichmentService(
+            bairroRepository,
+            notificationRepository,
+            weatherRepository,
+            List.of(openMeteo, nasa),
+            new WeatherValueValidator(properties),
+            properties
+        );
+
+        service.enrich(date, date);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<WeatherDaily>> captor = ArgumentCaptor.forClass(List.class);
+        verify(weatherRepository).saveAll(captor.capture());
+        WeatherDaily saved = captor.getValue().get(0);
+        assertEquals(true, saved.getPrecipitationDivergent());
+        assertEquals(true, saved.getHumidityDivergent());
+        assertEquals(true, saved.getWindDivergent());
+        assertEquals("DIVERGENT", saved.getComparisonStatus());
+        assertEquals(2.0, saved.getPrecipitationMm());
+        assertEquals("OPEN_METEO", saved.getPrecipitationSource());
     }
 
     private WeatherProviderClient client(WeatherProvider provider) {

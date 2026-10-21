@@ -55,6 +55,14 @@ public class WeatherDaily {
     private Double nasaPowerRelativeHumidityPct;
     private Double nasaPowerWindSpeedKmh;
 
+    private Double precipitationProviderDifferenceMm;
+    private Double humidityProviderDifferencePctPoints;
+    private Double windProviderDifferenceKmh;
+    private Boolean precipitationDivergent;
+    private Boolean humidityDivergent;
+    private Boolean windDivergent;
+    private String comparisonStatus;
+
     private OffsetDateTime openMeteoFetchedAt;
     private OffsetDateTime nasaPowerFetchedAt;
     private String status;
