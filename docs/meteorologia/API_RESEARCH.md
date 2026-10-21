@@ -1,0 +1,117 @@
+# Pesquisa de APIs meteorológicas
+
+**Data da pesquisa:** 20/10/2026  
+**Local do ensaio:** Mossoró/RN (`-5.1875`, `-37.3442`)  
+**Período avaliado:** 20/10/2024 a 19/10/2026 (730 dias completos)  
+**Variáveis:** precipitação diária, umidade relativa média e velocidade média do vento a 10 m
+
+## Objetivo
+
+Selecionar no mínimo duas fontes independentes capazes de enriquecer as notificações epidemiológicas com dados meteorológicos diários e alcançar cobertura combinada superior a 90%.
+
+## Fontes pesquisadas
+
+### Open-Meteo Historical Weather API
+
+- Endpoint histórico: `https://archive-api.open-meteo.com/v1/archive`.
+- Variáveis escolhidas: `precipitation_sum`, `relative_humidity_2m_mean` e `wind_speed_10m_mean`.
+- Retorno diário em fuso configurável, usado com `America/Fortaleza`.
+- Combina reanálises ERA5/ERA5-Land e, para períodos recentes, modelos ECMWF IFS. A documentação informa séries globais sem lacunas, resolução de aproximadamente 9 km nos dados recentes e ERA5/ERA5-Land com atraso de cerca de cinco dias.
+- A licença gratuita pública é voltada a uso não comercial e exige atribuição. Uma implantação comercial precisa contratar o plano apropriado ou hospedar o serviço.
+
+Documentação oficial:
+
+- https://open-meteo.com/en/docs/historical-weather-api
+- https://open-meteo.com/en/terms
+
+### NASA POWER Daily API
+
+- Endpoint: `https://power.larc.nasa.gov/api/temporal/daily/point`.
+- Variáveis escolhidas: `PRECTOTCORR`, `RH2M` e `WS10M`.
+- Fonte independente baseada principalmente em MERRA-2/GEOS-IT e produtos de precipitação da NASA.
+- Disponibilidade diária desde 1981 até próximo do tempo real; a documentação informa que a extensão de baixa latência normalmente fica pronta em aproximadamente dois dias.
+- Preenchimento ausente é representado por `-999` e precisa ser descartado.
+- A resolução de origem é mais grossa que a da Open-Meteo. Bairros próximos podem compartilhar a mesma célula da NASA, apesar de cada registro manter o ponto solicitado.
+
+Documentação oficial:
+
+- https://power.larc.nasa.gov/docs/services/api/temporal/daily/
+- https://power.larc.nasa.gov/docs/methodology/data/sources/
+- https://power.larc.nasa.gov/docs/methodology/meteorology/assessment/
+
+### INMET
+
+O INMET foi considerado como fonte observacional brasileira. Ele publica dados de estações, inclusive precipitação, umidade e vento. Porém, o próprio Instituto informa que dados automáticos podem conter `9999`, `Null` ou campos vazios, não passam por validação antes da publicação e os históricos são oferecidos principalmente pelo portal/BDMEP, com atualização informada de até 90 dias. Não foi selecionado como uma das duas integrações automáticas desta fase porque não há contrato de API pública estável documentado equivalente aos dois provedores escolhidos.
+
+O INMET continua recomendado para validações amostrais e futuras auditorias observacionais.
+
+Referências oficiais:
+
+- https://portal.inmet.gov.br/noticias/saiba-como-acessar-os-dados-meteorol%C3%B3gicos-dispon%C3%ADveis-no-site-do-inmet
+- https://portal.inmet.gov.br/servicos/bdmep-dados-historicos
+
+### Visual Crossing
+
+A API oferece histórico e previsão no mesmo endpoint, incluindo precipitação, umidade e vento, mas exige chave e possui limites associados ao plano contratado. É uma alternativa comercial de contingência caso os termos ou a disponibilidade da Open-Meteo mudem.
+
+Documentação oficial: https://www.visualcrossing.com/resources/documentation/weather-api/timeline-weather-api/
+
+## Metodologia do ensaio
+
+1. Foi utilizado um intervalo móvel de 730 dias completos, encerrado no dia anterior à pesquisa.
+2. As duas APIs foram consultadas para o mesmo ponto e período.
+3. Um valor foi considerado disponível quando era numérico, não nulo e diferente do sentinela `-999` da NASA.
+4. A cobertura foi calculada separadamente por variável e provedor.
+5. A cobertura combinada considera o dia preenchido quando ao menos um provedor possui valor válido.
+6. Vento da NASA (`m/s`) foi convertido para `km/h` apenas para a comparação com a Open-Meteo.
+7. A comparação entre valores usa somente os 729 dias em que ambos os provedores retornaram dados.
+
+## Resultado de completude
+
+| Variável | Open-Meteo | NASA POWER | Combinada | Meta |
+|---|---:|---:|---:|---:|
+| Precipitação | 730/730 (100%) | 729/730 (99,863%) | 730/730 (100%) | >90% |
+| Umidade relativa | 730/730 (100%) | 729/730 (99,863%) | 730/730 (100%) | >90% |
+| Vento a 10 m | 730/730 (100%) | 729/730 (99,863%) | 730/730 (100%) | >90% |
+
+O único dia ausente na NASA foi 19/10/2026, compatível com a defasagem próxima do tempo real documentada pelo provedor. A Open-Meteo preencheu esse dia nas três variáveis. A combinação atingiu 100%, superando a meta de 90%.
+
+## Comparação entre os valores
+
+| Variável | Dias comparados | Erro absoluto médio | Viés Open-Meteo − NASA | Correlação de Pearson |
+|---|---:|---:|---:|---:|
+| Precipitação | 729 | 1,713 mm | +0,960 mm | 0,634 |
+| Umidade relativa | 729 | 4,116 p.p. | +3,170 p.p. | 0,912 |
+| Vento | 729 | 9,202 km/h | −9,202 km/h | 0,908 |
+
+As diferenças não significam necessariamente erro: os provedores usam modelos, grades e métodos distintos. Por isso, os valores não serão calculados pela média entre fontes. A Open-Meteo será a fonte primária; a NASA será armazenada como fonte independente de comparação e utilizada como fallback quando a primária estiver ausente ou inválida.
+
+## Descoberta crítica na NASA POWER
+
+Ao solicitar `PRECTOTCORR`, `RH2M` e `WS10M` juntos para o intervalo completo, a precipitação retornou valores incompatíveis com consultas isoladas do mesmo dia. Consultas contendo somente `PRECTOTCORR` produziram valores plausíveis e coerentes com a unidade declarada (`mm/day`). Umidade e vento não apresentaram essa diferença.
+
+Consequência para a implementação:
+
+- A integração NASA fará três requisições isoladas — uma por variável.
+- Valores fora dos limites físicos configurados serão rejeitados.
+- Nenhum fator de correção empírico será aplicado.
+- Testes de contrato devem detectar se respostas individuais e multiparâmetro voltarem a divergir.
+
+## Localização por bairro
+
+Foi decidido usar um ponto por bairro. Os pontos iniciais foram obtidos uma única vez no OpenStreetMap/Nominatim, com cache no banco e sem consulta de geocodificação durante a rotina diária. A extração respeitou o limite público de uma requisição por segundo. Coordenadas permanecem editáveis para permitir correção administrativa.
+
+Política oficial: https://operations.osmfoundation.org/policies/nominatim/
+
+Devido à resolução dos modelos, o valor representa a célula meteorológica que contém o ponto do bairro, não uma medição feita dentro de cada rua. Em especial, vários bairros podem receber o mesmo valor da NASA.
+
+## Recomendação
+
+Usar:
+
+1. **Open-Meteo como fonte primária**, por sua resolução recente mais fina, atualização frequente e cobertura integral observada.
+2. **NASA POWER como fonte secundária**, para redundância, comparação e fallback, aceitando a defasagem próxima do tempo real.
+3. **INMET como referência observacional de auditoria**, sem dependência operacional nesta fase.
+
+O sistema deve armazenar os valores de cada provedor e o valor final selecionado, com data, bairro, coordenadas, unidade, fonte e horário da coleta. A completude será recalculada após cada execução e deve permanecer acima de 90% por variável.
+
