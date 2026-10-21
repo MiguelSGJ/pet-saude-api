@@ -14,7 +14,8 @@ public class NotificationDataManager {
             notification.getClassificacao(),
             notification.getSexo(),
             notification.getNomeBairro(),
-            notification.getEvolucao()
+            notification.getEvolucao(),
+            com.arboviroses.conectaDengue.Api.DTO.response.WeatherDataResponseDTO.from(notification.getWeatherData())
         );
     }
 }

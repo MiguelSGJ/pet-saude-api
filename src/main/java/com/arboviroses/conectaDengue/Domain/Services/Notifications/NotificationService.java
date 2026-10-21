@@ -141,6 +141,8 @@ public class NotificationService {
 
         if (!notifications.isEmpty()) {
             notificationRepository.saveAll(notifications);
+            notificationRepository.flush();
+            notificationRepository.linkAvailableWeatherData();
         }
 
         if (!notificationsWithError.isEmpty()) {
@@ -290,7 +292,10 @@ public class NotificationService {
             .orElseThrow(() -> new RuntimeException("Notificação não encontrada: " + id));
 
         applyUpdateDto(notification, dto);
+        notification.setWeatherData(null);
         notificationRepository.save(notification);
+        notificationRepository.flush();
+        notificationRepository.linkAvailableWeatherData();
     }
 
     public void deleteNotification(long id) {

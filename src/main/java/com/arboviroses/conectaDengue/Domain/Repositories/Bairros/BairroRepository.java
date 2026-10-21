@@ -29,4 +29,14 @@ public interface BairroRepository extends JpaRepository<Bairro, Long> {
         LEFT JOIN FETCH b.subBairros
     """)
     List<Bairro> findAllWithSubBairros();
+
+    @Query(value = """
+        SELECT DISTINCT b.*
+        FROM bairros b
+        JOIN notifications n
+          ON n.id_bairro = b.id
+          OR UPPER(TRIM(n.nome_bairro)) = UPPER(b.nome)
+        ORDER BY b.id
+        """, nativeQuery = true)
+    List<Bairro> findAllReferencedByNotifications();
 }
