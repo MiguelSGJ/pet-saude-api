@@ -146,7 +146,7 @@ Endpoint administrativo ─> disparo/reprocessamento e consulta de status
 14. **Concordância entre provedores**: medir divergência além da completude.
     - Atual: os valores das duas fontes são armazenados, mas não existe classificação operacional da diferença.
     - Alvo: calcular diferença absoluta por variável, sinalizar precipitação acima de 10 mm, umidade acima de 10 p.p. e vento acima de 15 km/h, com limites configuráveis.
-    - Aceite: o endpoint de cobertura informa pares comparados, divergentes, percentual de concordância e limites aplicados; o painel exibe meta mínima de 90%.
+    - Aceite: o endpoint técnico de cobertura informa pares comparados, divergentes, percentual de concordância e limites aplicados. Essas métricas ficam restritas à auditoria técnica e ao estudo em PDF, sem exposição na interface do usuário.
 
 ## Limites
 
@@ -164,7 +164,7 @@ Endpoint administrativo ─> disparo/reprocessamento e consulta de status
 - Previsões meteorológicas futuras — serão armazenados apenas dias concluídos, evitando misturar previsão com observação/reanálise.
 - Dados por endereço, rua ou coordenada do paciente — não existem no modelo e aumentariam risco de privacidade.
 - Substituição das fontes por INMET — reservado para uma fase de validação observacional.
-- Alterações de dashboards do frontend — os dados ficarão disponíveis no backend, mas a visualização é uma entrega separada.
+- Exposição, no frontend, de nomes dos provedores, completude, correlação ou divergência entre fontes. A interface administrativa mostra somente o estado operacional e permite reprocessar períodos.
 - Correção estatística ou média entre provedores — exige validação científica própria.
 
 ## Restrições
@@ -192,7 +192,7 @@ Endpoint administrativo ─> disparo/reprocessamento e consulta de status
 - [ ] Testes automatizados do módulo meteorológico passam.
 - [ ] Status e métricas permitem identificar cobertura e bairros pendentes.
 - [ ] Diferenças entre provedores ficam persistidas e auditáveis por variável.
-- [ ] O painel mostra concordância por período e alerta quando ficar abaixo de 90%.
+- [ ] Completude, correlação, divergência e identidade dos provedores não são expostas na interface; o estudo comparativo permanece no relatório PDF não versionado.
 
 ## Relatório de ambiguidade
 
