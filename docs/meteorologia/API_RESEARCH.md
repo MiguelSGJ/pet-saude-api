@@ -2,7 +2,8 @@
 
 **Data da pesquisa:** 20/10/2026  
 **Atualização dos critérios de concordância:** 21/10/2026
-**Local do ensaio:** Mossoró/RN (`-5.1875`, `-37.3442`)  
+**Local do ensaio inicial:** Mossoró/RN (`-5.1875`, `-37.3442`)
+**Validação ampliada:** 30 pontos de bairro cadastrados em Mossoró/RN
 **Período avaliado:** 20/10/2024 a 19/10/2026 (730 dias completos)  
 **Variáveis:** precipitação diária, umidade relativa média e velocidade média do vento a 10 m
 
@@ -65,7 +66,8 @@ Documentação oficial: https://www.visualcrossing.com/resources/documentation/w
 4. A cobertura foi calculada separadamente por variável e provedor.
 5. A cobertura combinada considera o dia preenchido quando ao menos um provedor possui valor válido.
 6. Vento da NASA (`m/s`) foi convertido para `km/h` apenas para a comparação com a Open-Meteo.
-7. A comparação entre valores usa somente os 729 dias em que ambos os provedores retornaram dados.
+7. A comparação inicial usou os 729 dias disponíveis nas duas fontes; em 21/10/2026, a validação ampliada usou 21.900 pares bairro-dia (30 bairros × 730 dias).
+8. A precipitação NASA foi solicitada em intervalos que não misturam as fontes internas MERRA-2 e POWER/GEOS-IT.
 
 ## Resultado de completude
 
@@ -86,6 +88,16 @@ O único dia ausente na NASA foi 19/10/2026, compatível com a defasagem próxim
 | Vento | 729 | 9,202 km/h | −9,202 km/h | 0,908 |
 
 As diferenças não significam necessariamente erro: os provedores usam modelos, grades e métodos distintos. Por isso, os valores não serão calculados pela média entre fontes. A Open-Meteo será a fonte primária; a NASA será armazenada como fonte independente de comparação e utilizada como fallback quando a primária estiver ausente ou inválida.
+
+### Validação ampliada nos 30 bairros
+
+| Variável | Pares bairro-dia | Erro absoluto médio | Viés Open-Meteo − NASA | Correlação | Dentro do limite operacional |
+|---|---:|---:|---:|---:|---:|
+| Precipitação | 21.900 | 1,628 mm | +0,860 mm | 0,636 | 96,47% |
+| Umidade relativa | 21.900 | 4,094 p.p. | +2,922 p.p. | 0,909 | 95,44% |
+| Vento | 21.900 | 9,219 km/h | −9,219 km/h | 0,910 | 100% |
+
+Todos os 30 bairros passaram no gate agregado e mantiveram pelo menos 90% dos pares dentro do limite operacional das três variáveis. A variação entre bairros foi pequena porque a cidade ocupa área menor que a grade da NASA; a Open-Meteo ainda diferencia as células mais finas usadas por cada ponto.
 
 ### Critério de concordância para seleção
 
@@ -109,13 +121,16 @@ Cada linha diária em que os dois provedores possuem valor será comparada e arm
 
 O painel mede a proporção de pares dentro desses limites, com meta operacional de pelo menos 90% de concordância. Um valor divergente não será descartado nem misturado por média, pois nenhuma das duas reanálises representa verdade observacional por si só. O sistema mantém a Open-Meteo como fonte final primária, preserva os dois valores e sinaliza a divergência para auditoria. Se a concordância cair abaixo de 90%, a fonte e o período devem ser revisados antes de usar os dados em análises epidemiológicas sensíveis.
 
-## Descoberta crítica na NASA POWER
+## Descobertas críticas na NASA POWER
 
 Ao solicitar `PRECTOTCORR`, `RH2M` e `WS10M` juntos para o intervalo completo, a precipitação retornou valores incompatíveis com consultas isoladas do mesmo dia. Consultas contendo somente `PRECTOTCORR` produziram valores plausíveis e coerentes com a unidade declarada (`mm/day`). Umidade e vento não apresentaram essa diferença.
 
+Na ampliação por bairro, foi encontrada uma segunda condição: uma consulta isolada de `PRECTOTCORR` que atravessa a transição entre as fontes internas declaradas no cabeçalho (`MERRA2` e `POWER`) pode retornar precipitação exatamente 24 vezes maior, ainda declarando `mm/day`. Consultas subdivididas, cada uma com uma única fonte no cabeçalho, retornaram valores coerentes. Portanto, o cliente não divide valores por 24; ele descarta a resposta mista e subdivide o intervalo até obter respostas com uma única fonte.
+
 Consequência para a implementação:
 
-- A integração NASA fará três requisições isoladas — uma por variável.
+- A integração NASA fará requisições isoladas por variável.
+- Respostas de precipitação com múltiplas fontes internas serão subdivididas recursivamente antes do uso.
 - Valores fora dos limites físicos configurados serão rejeitados.
 - Nenhum fator de correção empírico será aplicado.
 - Testes de contrato devem detectar se respostas individuais e multiparâmetro voltarem a divergir.

@@ -6,11 +6,14 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 @Component
 public class NasaPowerClient implements WeatherProviderClient {
+    private static final Logger LOGGER = LoggerFactory.getLogger(NasaPowerClient.class);
     static final double FILL_VALUE = -999.0;
     private static final DateTimeFormatter NASA_DATE = DateTimeFormatter.BASIC_ISO_DATE;
 
@@ -36,12 +39,40 @@ public class NasaPowerClient implements WeatherProviderClient {
     ) {
         Map<LocalDate, WeatherSample> samples = new LinkedHashMap<>();
 
-        // PRECTOTCORR apresentou valores inconsistentes quando solicitado junto
-        // de outros parametros. As chamadas permanecem deliberadamente isoladas.
-        merge(samples, request(latitude, longitude, start, end, "PRECTOTCORR"), "PRECTOTCORR");
+        // PRECTOTCORR pode retornar acumulados multiplicados por 24 quando uma
+        // resposta atravessa fontes internas distintas (MERRA-2 e POWER/GEOS-IT).
+        // A divisao usa o metadado oficial da resposta e evita correcao empirica.
+        mergePrecipitation(samples, latitude, longitude, start, end);
         merge(samples, request(latitude, longitude, start, end, "RH2M"), "RH2M");
         merge(samples, request(latitude, longitude, start, end, "WS10M"), "WS10M");
         return samples;
+    }
+
+    private void mergePrecipitation(
+        Map<LocalDate, WeatherSample> samples,
+        double latitude,
+        double longitude,
+        LocalDate start,
+        LocalDate end
+    ) {
+        JsonNode response = request(latitude, longitude, start, end, "PRECTOTCORR");
+        if (spansMultipleSources(response) && start.isBefore(end)) {
+            long intervalDays = end.toEpochDay() - start.toEpochDay();
+            LocalDate midpoint = start.plusDays(intervalDays / 2);
+            LOGGER.info(
+                "Resposta NASA PRECTOTCORR combina fontes no periodo {} a {}; subdividindo em {} a {} e {} a {}",
+                start, end, start, midpoint, midpoint.plusDays(1), end
+            );
+            mergePrecipitation(samples, latitude, longitude, start, midpoint);
+            mergePrecipitation(samples, latitude, longitude, midpoint.plusDays(1), end);
+            return;
+        }
+        merge(samples, response, "PRECTOTCORR");
+    }
+
+    boolean spansMultipleSources(JsonNode root) {
+        JsonNode sources = root.path("header").path("sources");
+        return sources.isArray() && sources.size() > 1;
     }
 
     private JsonNode request(

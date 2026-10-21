@@ -172,6 +172,7 @@ Endpoint administrativo ─> disparo/reprocessamento e consulta de status
 - Java 17, Spring Boot 3.2, PostgreSQL e Flyway existentes.
 - Fuso `America/Fortaleza` para definição do dia epidemiológico.
 - Chamadas NASA de precipitação, umidade e vento devem ser separadas.
+- Respostas NASA de precipitação que declarem mais de uma fonte interna devem ser subdivididas até cada resposta usar uma única fonte; nenhum fator de correção empírico será aplicado.
 - A rotina precisa respeitar limites e termos dos provedores.
 - Coordenadas ausentes impedem somente o bairro afetado e devem aparecer no status; não podem cair silenciosamente para o centro da cidade.
 - A cobertura mede campos preenchidos; a concordância mede proximidade entre modelos e não equivale a precisão observacional.
