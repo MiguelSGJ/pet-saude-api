@@ -45,6 +45,10 @@ public class NasaPowerClient implements WeatherProviderClient {
         mergePrecipitation(samples, latitude, longitude, start, end);
         merge(samples, request(latitude, longitude, start, end, "RH2M"), "RH2M");
         merge(samples, request(latitude, longitude, start, end, "WS10M"), "WS10M");
+        JsonNode temperature = request(latitude, longitude, start, end, "T2M,T2M_MIN,T2M_MAX");
+        merge(samples, temperature, "T2M");
+        merge(samples, temperature, "T2M_MIN");
+        merge(samples, temperature, "T2M_MAX");
         return samples;
     }
 
@@ -112,6 +116,9 @@ public class NasaPowerClient implements WeatherProviderClient {
                 case "PRECTOTCORR" -> current.withPrecipitation(value);
                 case "RH2M" -> current.withHumidity(value);
                 case "WS10M" -> current.withWind(value == null ? null : value * 3.6);
+                case "T2M" -> current.withTemperature(value);
+                case "T2M_MIN" -> current.withTemperatureMin(value);
+                case "T2M_MAX" -> current.withTemperatureMax(value);
                 default -> throw new IllegalArgumentException("Parametro NASA nao suportado: " + parameter);
             };
             samples.put(date, updated);

@@ -30,6 +30,8 @@ class WeatherCoverageServiceTest {
             .precipitationDivergent(false)
             .humidityDivergent(false)
             .windDivergent(false)
+            .temperatureC(28.0)
+            .temperatureDivergent(false)
             .build();
         WeatherDaily divergence = WeatherDaily.builder()
             .precipitationMm(20.0)
@@ -38,6 +40,7 @@ class WeatherCoverageServiceTest {
             .precipitationDivergent(true)
             .humidityDivergent(false)
             .windDivergent(true)
+            .temperatureDivergent(true)
             .build();
         when(weatherRepository.findByWeatherDateBetween(start, end)).thenReturn(List.of(agreement, divergence));
         when(notificationRepository.countWeatherEligible()).thenReturn(2L);
@@ -53,6 +56,11 @@ class WeatherCoverageServiceTest {
         assertEquals(50.0, response.precipitationAgreementPct());
         assertEquals(100.0, response.humidityAgreementPct());
         assertEquals(50.0, response.windAgreementPct());
+        assertEquals(1, response.temperatureAvailable());
+        assertEquals(50.0, response.temperatureCoveragePct());
+        assertEquals(2, response.temperatureCompared());
+        assertEquals(50.0, response.temperatureAgreementPct());
+        assertEquals(3.0, response.temperatureDifferenceThresholdC());
         assertEquals(10.0, response.precipitationDifferenceThresholdMm());
         assertEquals(15.0, response.windDifferenceThresholdKmh());
     }

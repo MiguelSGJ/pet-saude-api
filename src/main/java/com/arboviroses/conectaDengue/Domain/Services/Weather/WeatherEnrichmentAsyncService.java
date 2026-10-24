@@ -38,7 +38,7 @@ public class WeatherEnrichmentAsyncService {
     public void runFullBackfill() {
         LocalDate end = yesterday();
         LocalDate start = notificationRepository.findMinimumWeatherReferenceDate()
-            .map(java.sql.Date::toLocalDate)
+            .map(date -> date.toLocalDate().minusDays(properties.getBackfillLeadDays()))
             .orElse(null);
         run("FULL_BACKFILL", start, end);
     }

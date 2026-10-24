@@ -197,6 +197,15 @@ public class WeatherEnrichmentService {
         if (sample.windSpeedKmh() != null) {
             row.setOpenMeteoWindSpeedKmh(sample.windSpeedKmh());
         }
+        if (sample.temperatureC() != null) {
+            row.setOpenMeteoTemperatureC(sample.temperatureC());
+        }
+        if (sample.temperatureMinC() != null) {
+            row.setOpenMeteoTemperatureMinC(sample.temperatureMinC());
+        }
+        if (sample.temperatureMaxC() != null) {
+            row.setOpenMeteoTemperatureMaxC(sample.temperatureMaxC());
+        }
         row.setOpenMeteoFetchedAt(fetchedAt);
     }
 
@@ -213,6 +222,15 @@ public class WeatherEnrichmentService {
         if (sample.windSpeedKmh() != null) {
             row.setNasaPowerWindSpeedKmh(sample.windSpeedKmh());
         }
+        if (sample.temperatureC() != null) {
+            row.setNasaPowerTemperatureC(sample.temperatureC());
+        }
+        if (sample.temperatureMinC() != null) {
+            row.setNasaPowerTemperatureMinC(sample.temperatureMinC());
+        }
+        if (sample.temperatureMaxC() != null) {
+            row.setNasaPowerTemperatureMaxC(sample.temperatureMaxC());
+        }
         row.setNasaPowerFetchedAt(fetchedAt);
     }
 
@@ -220,9 +238,13 @@ public class WeatherEnrichmentService {
         row.setPrecipitationMm(first(row.getOpenMeteoPrecipitationMm(), row.getNasaPowerPrecipitationMm()));
         row.setRelativeHumidityPct(first(row.getOpenMeteoRelativeHumidityPct(), row.getNasaPowerRelativeHumidityPct()));
         row.setWindSpeedKmh(first(row.getOpenMeteoWindSpeedKmh(), row.getNasaPowerWindSpeedKmh()));
+        row.setTemperatureC(first(row.getOpenMeteoTemperatureC(), row.getNasaPowerTemperatureC()));
+        row.setTemperatureMinC(first(row.getOpenMeteoTemperatureMinC(), row.getNasaPowerTemperatureMinC()));
+        row.setTemperatureMaxC(first(row.getOpenMeteoTemperatureMaxC(), row.getNasaPowerTemperatureMaxC()));
         row.setPrecipitationSource(source(row.getOpenMeteoPrecipitationMm(), row.getNasaPowerPrecipitationMm()));
         row.setHumiditySource(source(row.getOpenMeteoRelativeHumidityPct(), row.getNasaPowerRelativeHumidityPct()));
         row.setWindSource(source(row.getOpenMeteoWindSpeedKmh(), row.getNasaPowerWindSpeedKmh()));
+        row.setTemperatureSource(source(row.getOpenMeteoTemperatureC(), row.getNasaPowerTemperatureC()));
     }
 
     private void compareProviders(WeatherDaily row) {
@@ -236,6 +258,10 @@ public class WeatherEnrichmentService {
             row.getOpenMeteoWindSpeedKmh(), row.getNasaPowerWindSpeedKmh()
         ));
 
+        row.setTemperatureProviderDifferenceC(absoluteDifference(
+            row.getOpenMeteoTemperatureC(), row.getNasaPowerTemperatureC()
+        ));
+
         row.setPrecipitationDivergent(exceeds(
             row.getPrecipitationProviderDifferenceMm(), properties.getMaxPrecipitationProviderDifferenceMm()
         ));
@@ -245,13 +271,18 @@ public class WeatherEnrichmentService {
         row.setWindDivergent(exceeds(
             row.getWindProviderDifferenceKmh(), properties.getMaxWindProviderDifferenceKmh()
         ));
+        row.setTemperatureDivergent(exceeds(
+            row.getTemperatureProviderDifferenceC(), properties.getMaxTemperatureProviderDifferenceC()
+        ));
 
         boolean hasComparison = row.getPrecipitationDivergent() != null
             || row.getHumidityDivergent() != null
-            || row.getWindDivergent() != null;
+            || row.getWindDivergent() != null
+            || row.getTemperatureDivergent() != null;
         boolean hasDivergence = Boolean.TRUE.equals(row.getPrecipitationDivergent())
             || Boolean.TRUE.equals(row.getHumidityDivergent())
-            || Boolean.TRUE.equals(row.getWindDivergent());
+            || Boolean.TRUE.equals(row.getWindDivergent())
+            || Boolean.TRUE.equals(row.getTemperatureDivergent());
         row.setComparisonStatus(hasDivergence ? "DIVERGENT" : hasComparison ? "AGREEMENT" : "UNAVAILABLE");
     }
 
@@ -277,7 +308,10 @@ public class WeatherEnrichmentService {
     private boolean isComplete(WeatherDaily row) {
         return row.getPrecipitationMm() != null
             && row.getRelativeHumidityPct() != null
-            && row.getWindSpeedKmh() != null;
+            && row.getWindSpeedKmh() != null
+            && row.getTemperatureC() != null
+            && row.getTemperatureMinC() != null
+            && row.getTemperatureMaxC() != null;
     }
 
     private String truncate(String value, int maximumLength) {

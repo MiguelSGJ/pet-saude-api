@@ -20,7 +20,10 @@ class OpenMeteoClientTest {
                 "time": ["2026-10-18", "2026-10-19"],
                 "precipitation_sum": [1.2, null],
                 "relative_humidity_2m_mean": [66, 70],
-                "wind_speed_10m_mean": [13.6, 10.8]
+                "wind_speed_10m_mean": [13.6, 10.8],
+                "temperature_2m_mean": [27.9, null],
+                "temperature_2m_min": [23.1, null],
+                "temperature_2m_max": [33.4, null]
               }
             }
             """;
@@ -31,6 +34,10 @@ class OpenMeteoClientTest {
         assertEquals(1.2, samples.get(LocalDate.of(2026, 10, 18)).precipitationMm());
         assertEquals(66, samples.get(LocalDate.of(2026, 10, 18)).relativeHumidityPct());
         assertNull(samples.get(LocalDate.of(2026, 10, 19)).precipitationMm());
+        assertEquals(27.9, samples.get(LocalDate.of(2026, 10, 18)).temperatureC());
+        assertNull(samples.get(LocalDate.of(2026, 10, 19)).temperatureC());
+        assertEquals(23.1, samples.get(LocalDate.of(2026, 10, 18)).temperatureMinC());
+        assertEquals(33.4, samples.get(LocalDate.of(2026, 10, 18)).temperatureMaxC());
     }
 }
 

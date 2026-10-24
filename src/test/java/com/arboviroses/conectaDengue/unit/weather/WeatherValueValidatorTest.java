@@ -18,12 +18,18 @@ class WeatherValueValidatorTest {
             LocalDate.of(2026, 10, 20),
             -1.0,
             101.0,
-            Double.NaN
+            Double.NaN,
+            75.0,
+            -91.0,
+            61.0
         ));
 
         assertNull(sanitized.precipitationMm());
         assertNull(sanitized.relativeHumidityPct());
         assertNull(sanitized.windSpeedKmh());
+        assertNull(sanitized.temperatureC());
+        assertNull(sanitized.temperatureMinC());
+        assertNull(sanitized.temperatureMaxC());
     }
 
     @Test
@@ -32,12 +38,18 @@ class WeatherValueValidatorTest {
             LocalDate.of(2026, 10, 20),
             0.0,
             100.0,
-            300.0
+            300.0,
+            -5.5,
+            -90.0,
+            60.0
         ));
 
         assertEquals(0.0, sanitized.precipitationMm());
         assertEquals(100.0, sanitized.relativeHumidityPct());
         assertEquals(300.0, sanitized.windSpeedKmh());
+        assertEquals(-5.5, sanitized.temperatureC());
+        assertEquals(-90.0, sanitized.temperatureMinC());
+        assertEquals(60.0, sanitized.temperatureMaxC());
     }
 }
 

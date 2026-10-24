@@ -16,6 +16,7 @@ public class WeatherProperties {
     private String cron = "0 30 4 * * *";
     private int reconciliationDays = 7;
     private int batchDays = 366;
+    private int backfillLeadDays = 90;
     private int connectTimeoutMillis = 10_000;
     private int readTimeoutMillis = 30_000;
     private int maxAttempts = 3;
@@ -25,6 +26,7 @@ public class WeatherProperties {
     private double maxPrecipitationProviderDifferenceMm = 10;
     private double maxHumidityProviderDifferencePctPoints = 10;
     private double maxWindProviderDifferenceKmh = 15;
+    private double maxTemperatureProviderDifferenceC = 3;
     private long jobLockSeconds = 86_400;
     private String openMeteoBaseUrl = "https://archive-api.open-meteo.com/v1/archive";
     private String nasaPowerBaseUrl = "https://power.larc.nasa.gov/api/temporal/daily/point";

@@ -12,6 +12,8 @@ public record WeatherCoverageResponse(
     double humidityCoveragePct,
     long windAvailable,
     double windCoveragePct,
+    long temperatureAvailable,
+    double temperatureCoveragePct,
     long precipitationCompared,
     long precipitationDivergent,
     double precipitationAgreementPct,
@@ -21,9 +23,13 @@ public record WeatherCoverageResponse(
     long windCompared,
     long windDivergent,
     double windAgreementPct,
+    long temperatureCompared,
+    long temperatureDivergent,
+    double temperatureAgreementPct,
     double precipitationDifferenceThresholdMm,
     double humidityDifferenceThresholdPctPoints,
     double windDifferenceThresholdKmh,
+    double temperatureDifferenceThresholdC,
     long eligibleNotifications,
     long linkedNotifications
 ) {
