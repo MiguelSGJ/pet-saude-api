@@ -23,6 +23,7 @@ public class ManageNotificationResponseDTO {
     private String evolucao;
     private int idadePaciente;
     private int semanaEpidemiologica;
+    private WeatherDataResponseDTO weather;
 
     public ManageNotificationResponseDTO(Notification n) {
         this.idNotification = n.getIdNotification();
@@ -36,5 +37,6 @@ public class ManageNotificationResponseDTO {
         this.evolucao = n.getEvolucao();
         this.idadePaciente = n.getIdadePaciente();
         this.semanaEpidemiologica = n.getSemanaEpidemiologica();
+        this.weather = WeatherDataResponseDTO.from(n.getWeatherData());
     }
 }

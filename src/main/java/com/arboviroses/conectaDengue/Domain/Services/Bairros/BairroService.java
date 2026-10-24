@@ -1,6 +1,7 @@
 package com.arboviroses.conectaDengue.Domain.Services.Bairros;
 
 import com.arboviroses.conectaDengue.Api.DTO.BairroSeedItem;
+import com.arboviroses.conectaDengue.Api.DTO.BairroCoordinates;
 import com.arboviroses.conectaDengue.Domain.Entities.Bairro;
 import com.arboviroses.conectaDengue.Domain.Entities.SubBairro;
 import com.arboviroses.conectaDengue.Domain.Repositories.Bairros.BairroRepository;
@@ -13,6 +14,8 @@ import java.text.Normalizer;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -96,6 +99,26 @@ public class BairroService {
                 );
 
             bairroRepository.save(bairro);
+        });
+    }
+
+    @Transactional
+    public void loadWeatherCoordinates(Map<String, BairroCoordinates> coordinates) {
+        if (coordinates == null || coordinates.isEmpty()) {
+            return;
+        }
+        coordinates.forEach((name, point) -> {
+            String normalizedName = normalizeName(name);
+            bairroRepository.findByNomeAndCidadeIgnoreCase(normalizedName, DEFAULT_CITY)
+                .ifPresent(bairro -> {
+                    if (bairro.getLatitude() == null || bairro.getLongitude() == null) {
+                        bairro.setLatitude(point.latitude());
+                        bairro.setLongitude(point.longitude());
+                        bairro.setCoordinatesSource("OPENSTREETMAP_NOMINATIM_2026-10-20");
+                        bairro.setCoordinatesUpdatedAt(OffsetDateTime.now());
+                        bairroRepository.save(bairro);
+                    }
+                });
         });
     }
 

@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.ArrayList;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Entity
@@ -26,6 +27,14 @@ public class Bairro {
 
     @Column(nullable = false)
     private String cidade;
+
+    private Double latitude;
+
+    private Double longitude;
+
+    private String coordinatesSource;
+
+    private OffsetDateTime coordinatesUpdatedAt;
 
     @OneToMany(mappedBy = "bairro", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SubBairro> subBairros = new ArrayList<>();

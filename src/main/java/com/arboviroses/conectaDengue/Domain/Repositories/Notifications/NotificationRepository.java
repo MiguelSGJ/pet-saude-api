@@ -73,4 +73,35 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         AND n.dataNotification IN :dates
         """)
     void deleteByIdAgravoIsNullAndDataNotificationIn(@Param("dates") Collection<Date> dates);
+
+    @Query(value = """
+        SELECT MIN(CAST(COALESCE(data_primeiro_sintoma, data_notification) AS date))
+        FROM notifications
+        WHERE COALESCE(data_primeiro_sintoma, data_notification) IS NOT NULL
+        """, nativeQuery = true)
+    Optional<java.sql.Date> findMinimumWeatherReferenceDate();
+
+    @Modifying
+    @Transactional
+    @Query(value = """
+        UPDATE notifications n
+        SET weather_data_id = w.id
+        FROM weather_daily w
+        JOIN bairros b ON b.id = w.bairro_id
+        WHERE (w.bairro_id = n.id_bairro OR UPPER(TRIM(n.nome_bairro)) = UPPER(b.nome))
+          AND w.weather_date = CAST(COALESCE(n.data_primeiro_sintoma, n.data_notification) AS date)
+          AND n.weather_data_id IS DISTINCT FROM w.id
+        """, nativeQuery = true)
+    int linkAvailableWeatherData();
+
+    @Query(value = """
+        SELECT COUNT(*)
+        FROM notifications
+        WHERE COALESCE(data_primeiro_sintoma, data_notification) IS NOT NULL
+          AND (id_bairro > 0 OR nome_bairro IS NOT NULL)
+        """, nativeQuery = true)
+    long countWeatherEligible();
+
+    @Query(value = "SELECT COUNT(*) FROM notifications WHERE weather_data_id IS NOT NULL", nativeQuery = true)
+    long countWeatherLinked();
 }

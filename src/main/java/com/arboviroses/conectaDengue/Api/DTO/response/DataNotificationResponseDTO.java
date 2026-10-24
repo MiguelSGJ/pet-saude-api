@@ -22,6 +22,7 @@ public class DataNotificationResponseDTO {
     private String sexo;
     private String nomeBairro;
     private String evolucao;  
+    private WeatherDataResponseDTO weather;
 
     public DataNotificationResponseDTO(Notification notification)
     {
@@ -33,5 +34,6 @@ public class DataNotificationResponseDTO {
         this.sexo = notification.getSexo();
         this.nomeBairro = notification.getNomeBairro();
         this.evolucao = notification.getEvolucao();
+        this.weather = WeatherDataResponseDTO.from(notification.getWeatherData());
     }
 }
