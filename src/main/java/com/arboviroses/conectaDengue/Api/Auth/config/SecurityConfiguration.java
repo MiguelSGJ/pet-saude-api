@@ -44,6 +44,7 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/uploadXlsx", "/api/uploadCsv", "/api/uploadDbf", "/api/saveNotifications").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/lira/upload", "/api/determinantes/upload").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/weather/enrichment/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/weather/export/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/notifications/manage", "/api/notifications/errors/manage").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/notifications/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/notifications/**").hasRole("ADMIN")
