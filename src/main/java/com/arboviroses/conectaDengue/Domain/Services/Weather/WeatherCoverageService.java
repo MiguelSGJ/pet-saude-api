@@ -30,6 +30,7 @@ public class WeatherCoverageService {
         long precipitation = rows.stream().filter(row -> row.getPrecipitationMm() != null).count();
         long humidity = rows.stream().filter(row -> row.getRelativeHumidityPct() != null).count();
         long wind = rows.stream().filter(row -> row.getWindSpeedKmh() != null).count();
+        long temperature = rows.stream().filter(row -> row.getTemperatureC() != null).count();
         long precipitationCompared = rows.stream()
             .filter(row -> row.getPrecipitationDivergent() != null).count();
         long precipitationDivergent = rows.stream()
@@ -42,6 +43,10 @@ public class WeatherCoverageService {
             .filter(row -> row.getWindDivergent() != null).count();
         long windDivergent = rows.stream()
             .filter(row -> Boolean.TRUE.equals(row.getWindDivergent())).count();
+        long temperatureCompared = rows.stream()
+            .filter(row -> row.getTemperatureDivergent() != null).count();
+        long temperatureDivergent = rows.stream()
+            .filter(row -> Boolean.TRUE.equals(row.getTemperatureDivergent())).count();
         long total = rows.size();
         return new WeatherCoverageResponse(
             start,
@@ -53,6 +58,8 @@ public class WeatherCoverageService {
             percentage(humidity, total),
             wind,
             percentage(wind, total),
+            temperature,
+            percentage(temperature, total),
             precipitationCompared,
             precipitationDivergent,
             agreementPercentage(precipitationCompared, precipitationDivergent),
@@ -62,9 +69,13 @@ public class WeatherCoverageService {
             windCompared,
             windDivergent,
             agreementPercentage(windCompared, windDivergent),
+            temperatureCompared,
+            temperatureDivergent,
+            agreementPercentage(temperatureCompared, temperatureDivergent),
             properties.getMaxPrecipitationProviderDifferenceMm(),
             properties.getMaxHumidityProviderDifferencePctPoints(),
             properties.getMaxWindProviderDifferenceKmh(),
+            properties.getMaxTemperatureProviderDifferenceC(),
             notificationRepository.countWeatherEligible(),
             notificationRepository.countWeatherLinked()
         );

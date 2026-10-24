@@ -2,10 +2,12 @@ package com.arboviroses.conectaDengue.Api.Controllers;
 
 import com.arboviroses.conectaDengue.Api.DTO.response.SuccessResponseDTO;
 import com.arboviroses.conectaDengue.Api.DTO.response.WeatherCoverageResponse;
+import com.arboviroses.conectaDengue.Api.DTO.response.WeatherGapsResponse;
 import com.arboviroses.conectaDengue.Api.DTO.response.WeatherJobStatus;
 import com.arboviroses.conectaDengue.Domain.Services.Weather.WeatherCoverageService;
 import com.arboviroses.conectaDengue.Domain.Services.Weather.WeatherEnrichmentAsyncService;
 import com.arboviroses.conectaDengue.Domain.Services.Weather.WeatherJobMonitor;
+import com.arboviroses.conectaDengue.Domain.Services.Weather.WeatherSeriesService;
 import com.arboviroses.conectaDengue.Infrastructure.Weather.WeatherProperties;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -23,17 +25,20 @@ public class WeatherController {
     private final WeatherEnrichmentAsyncService asyncService;
     private final WeatherCoverageService coverageService;
     private final WeatherJobMonitor monitor;
+    private final WeatherSeriesService seriesService;
     private final WeatherProperties properties;
 
     public WeatherController(
         WeatherEnrichmentAsyncService asyncService,
         WeatherCoverageService coverageService,
         WeatherJobMonitor monitor,
+        WeatherSeriesService seriesService,
         WeatherProperties properties
     ) {
         this.asyncService = asyncService;
         this.coverageService = coverageService;
         this.monitor = monitor;
+        this.seriesService = seriesService;
         this.properties = properties;
     }
 
@@ -64,6 +69,11 @@ public class WeatherController {
     @GetMapping("/enrichment/status")
     public ResponseEntity<SuccessResponseDTO<WeatherJobStatus>> status() {
         return ResponseEntity.ok(SuccessResponseDTO.setResponse(monitor.get(), null));
+    }
+
+    @GetMapping("/gaps")
+    public ResponseEntity<SuccessResponseDTO<WeatherGapsResponse>> gaps() {
+        return ResponseEntity.ok(SuccessResponseDTO.setResponse(seriesService.gaps(), null));
     }
 
     @GetMapping("/coverage")

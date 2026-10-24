@@ -42,10 +42,10 @@ class WeatherEnrichmentServiceTest {
         when(bairroRepository.findAllReferencedByNotifications()).thenReturn(List.of(bairro));
         when(weatherRepository.findByBairroIdAndWeatherDateBetween(1L, date, date)).thenReturn(List.of());
         when(openMeteo.fetch(bairro.getLatitude(), bairro.getLongitude(), date, date)).thenReturn(Map.of(
-            date, new WeatherSample(date, 2.0, null, 13.0)
+            date, new WeatherSample(date, 2.0, null, 13.0, 28.4, 24.0, 33.0)
         ));
         when(nasa.fetch(bairro.getLatitude(), bairro.getLongitude(), date, date)).thenReturn(Map.of(
-            date, new WeatherSample(date, 3.0, 65.0, 20.0)
+            date, new WeatherSample(date, 3.0, 65.0, 20.0, 30.0, 25.0, 35.0)
         ));
         when(notificationRepository.linkAvailableWeatherData()).thenReturn(4);
 
@@ -73,6 +73,12 @@ class WeatherEnrichmentServiceTest {
         assertEquals(false, saved.getPrecipitationDivergent());
         assertEquals(7.0, saved.getWindProviderDifferenceKmh());
         assertEquals(false, saved.getWindDivergent());
+        assertEquals(28.4, saved.getTemperatureC());
+        assertEquals("OPEN_METEO", saved.getTemperatureSource());
+        assertEquals(1.6, saved.getTemperatureProviderDifferenceC(), 1e-9);
+        assertEquals(false, saved.getTemperatureDivergent());
+        assertEquals(24.0, saved.getTemperatureMinC());
+        assertEquals(33.0, saved.getTemperatureMaxC());
         assertEquals("AGREEMENT", saved.getComparisonStatus());
         assertEquals("COMPLETE", saved.getStatus());
         assertEquals(4, report.linkedNotifications());
@@ -96,10 +102,10 @@ class WeatherEnrichmentServiceTest {
         when(bairroRepository.findAllReferencedByNotifications()).thenReturn(List.of(bairro));
         when(weatherRepository.findByBairroIdAndWeatherDateBetween(1L, date, date)).thenReturn(List.of());
         when(openMeteo.fetch(bairro.getLatitude(), bairro.getLongitude(), date, date)).thenReturn(Map.of(
-            date, new WeatherSample(date, 2.0, 60.0, 10.0)
+            date, new WeatherSample(date, 2.0, 60.0, 10.0, 25.0, 20.0, 30.0)
         ));
         when(nasa.fetch(bairro.getLatitude(), bairro.getLongitude(), date, date)).thenReturn(Map.of(
-            date, new WeatherSample(date, 15.0, 75.0, 30.0)
+            date, new WeatherSample(date, 15.0, 75.0, 30.0, 31.0, 26.0, 36.0)
         ));
 
         WeatherEnrichmentService service = new WeatherEnrichmentService(
@@ -120,6 +126,7 @@ class WeatherEnrichmentServiceTest {
         assertEquals(true, saved.getPrecipitationDivergent());
         assertEquals(true, saved.getHumidityDivergent());
         assertEquals(true, saved.getWindDivergent());
+        assertEquals(true, saved.getTemperatureDivergent());
         assertEquals("DIVERGENT", saved.getComparisonStatus());
         assertEquals(2.0, saved.getPrecipitationMm());
         assertEquals("OPEN_METEO", saved.getPrecipitationSource());

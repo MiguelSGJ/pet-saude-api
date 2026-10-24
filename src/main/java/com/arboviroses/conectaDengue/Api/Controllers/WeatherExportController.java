@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import com.arboviroses.conectaDengue.Domain.Services.Weather.WeatherSeriesService;
 import java.sql.ResultSetMetaData;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -25,7 +26,7 @@ public class WeatherExportController {
                CAST(n.data_primeiro_sintoma AS date) AS data_primeiro_sintoma,
                n.semana_epidemiologica, n.classificacao, n.evolucao,
                n.weather_data_id, w.weather_date,
-               w.precipitation_mm, w.relative_humidity_pct, w.wind_speed_kmh
+               w.precipitation_mm, w.relative_humidity_pct, w.wind_speed_kmh, w.temperature_c, w.temperature_min_c, w.temperature_max_c
         FROM notifications n
         LEFT JOIN weather_daily w ON w.id = n.weather_data_id
         ORDER BY COALESCE(n.data_primeiro_sintoma, n.data_notification), n.id_notification
@@ -39,11 +40,20 @@ public class WeatherExportController {
 
     @GetMapping("/notifications")
     public ResponseEntity<byte[]> notificationsWithWeather() throws IOException {
-        // Resposta sincrona (sem StreamingResponseBody): o dispatch assincrono perde o JWT e o Spring Security nega acesso.
+        return csv(NOTIFICATIONS_WITH_WEATHER_SQL, "notifications_com_clima.csv");
+    }
+
+    @GetMapping("/daily")
+    public ResponseEntity<byte[]> dailyCitySeries() throws IOException {
+        return csv(WeatherSeriesService.DAILY_SERIES_SQL, "clima_diario_cidade.csv");
+    }
+
+    // Resposta sincrona (sem StreamingResponseBody): o dispatch assincrono perde o JWT e o Spring Security nega acesso.
+    private ResponseEntity<byte[]> csv(String sql, String filename) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8));
         writer.write(0xFEFF);
-        jdbcTemplate.query(NOTIFICATIONS_WITH_WEATHER_SQL, rs -> {
+        jdbcTemplate.query(sql, rs -> {
             try {
                 ResultSetMetaData meta = rs.getMetaData();
                 int columns = meta.getColumnCount();
@@ -66,8 +76,7 @@ public class WeatherExportController {
         writer.flush();
 
         return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
-                .filename("notifications_com_clima.csv").build().toString())
+            .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(filename).build().toString())
             .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
             .body(out.toByteArray());
     }

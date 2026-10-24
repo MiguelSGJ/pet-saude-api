@@ -35,7 +35,7 @@ public class OpenMeteoClient implements WeatherProviderClient {
             .queryParam("longitude", longitude)
             .queryParam("start_date", start)
             .queryParam("end_date", end)
-            .queryParam("daily", "precipitation_sum,relative_humidity_2m_mean,wind_speed_10m_mean")
+            .queryParam("daily", "precipitation_sum,relative_humidity_2m_mean,wind_speed_10m_mean,temperature_2m_mean,temperature_2m_min,temperature_2m_max")
             .queryParam("timezone", properties.getTimezone())
             .build()
             .encode()
@@ -50,6 +50,9 @@ public class OpenMeteoClient implements WeatherProviderClient {
         JsonNode precipitation = daily.path("precipitation_sum");
         JsonNode humidity = daily.path("relative_humidity_2m_mean");
         JsonNode wind = daily.path("wind_speed_10m_mean");
+        JsonNode temperature = daily.path("temperature_2m_mean");
+        JsonNode temperatureMin = daily.path("temperature_2m_min");
+        JsonNode temperatureMax = daily.path("temperature_2m_max");
         if (!dates.isArray()) {
             throw new IllegalArgumentException("Resposta Open-Meteo sem serie diaria");
         }
@@ -61,7 +64,10 @@ public class OpenMeteoClient implements WeatherProviderClient {
                 date,
                 nullableDouble(precipitation, index),
                 nullableDouble(humidity, index),
-                nullableDouble(wind, index)
+                nullableDouble(wind, index),
+                nullableDouble(temperature, index),
+                nullableDouble(temperatureMin, index),
+                nullableDouble(temperatureMax, index)
             ));
         }
         return samples;

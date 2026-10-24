@@ -1,6 +1,7 @@
 package com.arboviroses.conectaDengue.Domain.Entities.Weather;
 
 import com.arboviroses.conectaDengue.Domain.Entities.Bairro;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -44,9 +45,16 @@ public class WeatherDaily {
     private Double precipitationMm;
     private Double relativeHumidityPct;
     private Double windSpeedKmh;
+    @Column(name = "temperature_c")
+    private Double temperatureC;
+    @Column(name = "temperature_min_c")
+    private Double temperatureMinC;
+    @Column(name = "temperature_max_c")
+    private Double temperatureMaxC;
     private String precipitationSource;
     private String humiditySource;
     private String windSource;
+    private String temperatureSource;
 
     private Double openMeteoPrecipitationMm;
     private Double openMeteoRelativeHumidityPct;
@@ -54,13 +62,28 @@ public class WeatherDaily {
     private Double nasaPowerPrecipitationMm;
     private Double nasaPowerRelativeHumidityPct;
     private Double nasaPowerWindSpeedKmh;
+    @Column(name = "open_meteo_temperature_c")
+    private Double openMeteoTemperatureC;
+    @Column(name = "open_meteo_temperature_min_c")
+    private Double openMeteoTemperatureMinC;
+    @Column(name = "open_meteo_temperature_max_c")
+    private Double openMeteoTemperatureMaxC;
+    @Column(name = "nasa_power_temperature_c")
+    private Double nasaPowerTemperatureC;
+    @Column(name = "nasa_power_temperature_min_c")
+    private Double nasaPowerTemperatureMinC;
+    @Column(name = "nasa_power_temperature_max_c")
+    private Double nasaPowerTemperatureMaxC;
 
     private Double precipitationProviderDifferenceMm;
     private Double humidityProviderDifferencePctPoints;
     private Double windProviderDifferenceKmh;
+    @Column(name = "temperature_provider_difference_c")
+    private Double temperatureProviderDifferenceC;
     private Boolean precipitationDivergent;
     private Boolean humidityDivergent;
     private Boolean windDivergent;
+    private Boolean temperatureDivergent;
     private String comparisonStatus;
 
     private OffsetDateTime openMeteoFetchedAt;
