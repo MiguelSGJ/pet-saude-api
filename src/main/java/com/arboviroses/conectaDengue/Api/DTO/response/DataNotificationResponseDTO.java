@@ -17,6 +17,7 @@ public class DataNotificationResponseDTO {
     private long idNotification;
     private String idAgravo;
     private Date dataNotification;
+    private Date dataPrimeiroSintoma;
     private Date dataNascimento;
     private String classificacao;
     private String sexo;
@@ -29,6 +30,7 @@ public class DataNotificationResponseDTO {
         this.idNotification = notification.getIdNotification();
         this.idAgravo = notification.getIdAgravo();
         this.dataNotification = notification.getDataNotification();
+        this.dataPrimeiroSintoma = notification.getDataPrimeiroSintoma();
         this.dataNascimento = notification.getDataNascimento();
         this.classificacao = notification.getClassificacao();
         this.sexo = notification.getSexo();

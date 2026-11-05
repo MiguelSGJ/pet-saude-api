@@ -16,11 +16,12 @@ public class ConvertCSVLineToNotificationsTest {
     public void test_if_method_convert_returns_an_notification_object() throws NumberFormatException, ParseException
     {
         // arrage
-        String[] line = {"500", "A90", "10/10/2006", "10/10/2006", "100", "M", "ABOLICAO", "1", "27", "42"};
+        String[] line = {"500", "A90", "10/12/2006", "10/10/2006", "10/10/2006", "100", "M", "ABOLICAO", "1", "27", "42"};
         List<String> header = Arrays.asList(
             "NU_NOTIFIC",
             "ID_AGRAVO",
             "DT_NOTIFIC",
+            "DT_SIN_PRI",
             "DT_NASC",
             "CLASSI_FIN",
             "CS_SEXO",
@@ -38,7 +39,8 @@ public class ConvertCSVLineToNotificationsTest {
         assertEquals(500L, notification.getIdNotification());
         assertEquals("A90", notification.getIdAgravo());
         assertEquals("Tue Oct 10 00:00:00 BRT 2006", notification.getDataNascimento().toString());
-        assertEquals("Tue Oct 10 00:00:00 BRT 2006", notification.getDataNotification().toString());
+        assertEquals("Thu Oct 12 00:00:00 BRT 2006", notification.getDataNotification().toString());
+        assertEquals("Tue Oct 10 00:00:00 BRT 2006", notification.getDataPrimeiroSintoma().toString());
         assertEquals("100", notification.getClassificacao());
         assertEquals("M", notification.getSexo());
         assertEquals("ABOLICAO", notification.getNomeBairro());

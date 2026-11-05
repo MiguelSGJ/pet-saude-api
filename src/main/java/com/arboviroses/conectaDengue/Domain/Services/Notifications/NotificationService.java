@@ -105,8 +105,8 @@ public class NotificationService {
                         .add(notification.getDataNotification());
                 }
 
-                // Registros com problema vão APENAS para a tabela de erros; a tabela
-                // principal (que alimenta os dashboards) recebe somente dados sem defeito.
+                // Registros com problema ficam na tabela de erros. O total do dashboard
+                // combina as duas tabelas; os demais recortes usam apenas campos validos.
                 if (notificationsErrorService.notificationHasError(notification)) {
                     NotificationWithError notificationWithError = NotificationWithError.builder()
                         .idAgravo(notification.getIdAgravo())
@@ -118,6 +118,7 @@ public class NotificationService {
                         .sexo(notification.getSexo())
                         .idBairro(notification.getIdBairro())
                         .nomeBairro(notification.getNomeBairro())
+                        .nomeBairroOriginal(notification.getNomeBairroOriginal())
                         .evolucao(notification.getEvolucao())
                         .semanaEpidemiologica(notification.getSemanaEpidemiologica())
                         .iteration(currentIteration)
@@ -200,8 +201,10 @@ public class NotificationService {
         notification.setClassificacao(dto.getClassiFin());
         notification.setSexo(dto.getCsSexo());
 
-        // Resolve bairro pelo nome → obtém nome normalizado e ID do banco automaticamente
-        Optional<Bairro> bairroResolvido = bairroService.resolveBairro(dto.getNmBairro());
+        // Mantem o valor recebido para auditoria e usa apenas o nome canonico nos dashboards.
+        // Localidades preenchidas fora do catalogo urbano sao agrupadas em ZONA RURAL.
+        notification.setNomeBairroOriginal(dto.getNmBairro());
+        Optional<Bairro> bairroResolvido = bairroService.resolveBairroForNotification(dto.getNmBairro());
         notification.setNomeBairro(bairroResolvido.map(Bairro::getNome).orElse(null));
         notification.setIdBairro(bairroResolvido
             .map(b -> b.getId().intValue())
@@ -307,6 +310,10 @@ public class NotificationService {
         if (dto.getDtNotific() != null && !dto.getDtNotific().isBlank()) {
             Date date = converterStringParaDate(dto.getDtNotific());
             n.setDataNotification(date);
+        }
+        if (dto.getDtSinPri() != null && !dto.getDtSinPri().isBlank()) {
+            Date date = converterStringParaDate(dto.getDtSinPri());
+            n.setDataPrimeiroSintoma(date);
             if (date != null) n.setSemanaEpidemiologica(calculateSemanaEpidemiologica(date));
         }
         if (dto.getDtNasc() != null && !dto.getDtNasc().isBlank()) {
@@ -314,8 +321,14 @@ public class NotificationService {
         }
         if (dto.getClassiFin() != null) n.setClassificacao(dto.getClassiFin());
         if (dto.getCsSexo() != null) n.setSexo(dto.getCsSexo());
-        if (dto.getNmBairro() != null) n.setNomeBairro(bairroService.normalizeToMainNeighborhood(dto.getNmBairro()));
-        if (dto.getIdBairro() != null) n.setIdBairro(dto.getIdBairro());
+        if (dto.getNmBairro() != null) {
+            n.setNomeBairroOriginal(dto.getNmBairro());
+            Optional<Bairro> bairroResolvido = bairroService.resolveBairroForNotification(dto.getNmBairro());
+            n.setNomeBairro(bairroResolvido.map(Bairro::getNome).orElse(null));
+            n.setIdBairro(bairroResolvido.map(b -> b.getId().intValue()).orElse(0));
+        } else if (dto.getIdBairro() != null) {
+            n.setIdBairro(dto.getIdBairro());
+        }
         if (dto.getEvolucao() != null) n.setEvolucao(dto.getEvolucao());
         if (dto.getIdade() != null && dto.getIdade() > 0) {
             n.setIdadePaciente(dto.getIdade());
@@ -399,7 +412,9 @@ public class NotificationService {
     }
 
     public long countByIdAgravo(HttpServletRequest request) throws Exception {
-        return NotificationFilters.filterForCountByIdAgravo(request, notificationRepository);
+        long consistentNotifications = NotificationFilters.filterForCountByIdAgravo(request, notificationRepository);
+        long inconsistentNotifications = notificationsErrorService.countForDashboard(request);
+        return consistentNotifications + inconsistentNotifications;
     }
 
     public Map<Integer, Map<Integer, Long>> getNotificationCountsByYear(List<Integer> years) {
@@ -410,7 +425,7 @@ public class NotificationService {
             Map<Integer, Long> notificationsByMonth = new HashMap<>();
 
             for (Notification notification : notificationsForYear) {
-                int month = getMonth(notification.getDataNotification());
+                int month = getMonth(notification.getDataPrimeiroSintoma());
                 notificationsByMonth.merge(month, 1L, Long::sum);
             }
 

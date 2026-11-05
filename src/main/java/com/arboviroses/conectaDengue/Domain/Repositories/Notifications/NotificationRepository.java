@@ -39,11 +39,11 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     @Query("""
         SELECT n FROM Notification n
-        WHERE (:year IS NULL OR FUNCTION('date_part', 'year', n.dataNotification) = :year)
+        WHERE (:year IS NULL OR FUNCTION('date_part', 'year', n.dataPrimeiroSintoma) = :year)
         AND (:week IS NULL OR n.semanaEpidemiologica = :week)
         AND (:bairroPattern = '%' OR LOWER(n.nomeBairro) LIKE LOWER(:bairroPattern))
         AND (:idAgravo IS NULL OR n.idAgravo = :idAgravo)
-        ORDER BY n.dataNotification DESC
+        ORDER BY n.dataPrimeiroSintoma DESC
         """)
     Page<Notification> findWithFilters(
         @Param("year") Integer year,

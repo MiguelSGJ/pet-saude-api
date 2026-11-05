@@ -14,6 +14,7 @@ import com.arboviroses.conectaDengue.Api.DTO.response.BairroCountDTO;
 import com.arboviroses.conectaDengue.Api.DTO.response.CountAgravoBySexoDTO;
 import com.arboviroses.conectaDengue.Api.Exceptions.InvalidAgravoException;
 import com.arboviroses.conectaDengue.Domain.Entities.Notification.Notification;
+import com.arboviroses.conectaDengue.Domain.Entities.Notification.NotificationWithError;
 import com.arboviroses.conectaDengue.Domain.Repositories.Notifications.NotificationRepository;
 import com.arboviroses.conectaDengue.Utils.ConvertNameToIdAgravo;
 
@@ -22,6 +23,7 @@ import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Tuple;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Subquery;
 import jakarta.servlet.http.HttpServletRequest;
 
 public class NotificationFilters {
@@ -40,6 +42,42 @@ public class NotificationFilters {
 
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
+
+            if (agravoId != null) {
+                predicates.add(criteriaBuilder.equal(root.get("idAgravo"), agravoId));
+            }
+            classificacaoFilter.ifPresent(classes ->
+                predicates.add(root.get("classificacao").in(classes))
+            );
+            if (bairro != null && !bairro.isEmpty()) {
+                predicates.add(criteriaBuilder.equal(root.get("nomeBairro"), bairro));
+            }
+            if (year != null) {
+                predicates.add(criteriaBuilder.equal(criteriaBuilder.function("date_part", Integer.class,
+                    criteriaBuilder.literal("year"),
+                    root.<java.util.Date>get("dataPrimeiroSintoma")), year));
+            }
+
+            applyScope(scope, predicates, root, criteriaBuilder);
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
+    public static Specification<NotificationWithError> buildDashboardErrorSpecification(HttpServletRequest request) throws InvalidAgravoException {
+        String agravoName = request.getParameter("agravo");
+        String bairro = request.getParameter("bairro");
+        Integer year = request.getParameter("year") != null ? Integer.valueOf(request.getParameter("year")) : null;
+        String agravoId = resolveAgravoId(agravoName);
+        Optional<List<String>> classificacaoFilter = resolveClassificacaoFilter(agravoName);
+        String scope = normalizeScope(request.getParameter("scope"));
+
+        return (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            Subquery<Long> maxIterationQuery = query.subquery(Long.class);
+            var errorRoot = maxIterationQuery.from(NotificationWithError.class);
+            maxIterationQuery.select(criteriaBuilder.max(errorRoot.get("iteration")));
+            predicates.add(criteriaBuilder.equal(root.get("iteration"), maxIterationQuery));
 
             if (agravoId != null) {
                 predicates.add(criteriaBuilder.equal(root.get("idAgravo"), agravoId));
@@ -232,7 +270,7 @@ public class NotificationFilters {
     private static void applyScope(
         String scope,
         List<Predicate> predicates,
-        jakarta.persistence.criteria.Root<Notification> root,
+        jakarta.persistence.criteria.Root<?> root,
         jakarta.persistence.criteria.CriteriaBuilder criteriaBuilder
     ) {
         switch (scope) {
