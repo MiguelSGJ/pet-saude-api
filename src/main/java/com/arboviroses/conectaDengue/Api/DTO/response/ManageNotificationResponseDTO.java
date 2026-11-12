@@ -15,11 +15,13 @@ public class ManageNotificationResponseDTO {
     private long idNotification;
     private String idAgravo;
     private Date dataNotification;
+    private Date dataPrimeiroSintoma;
     private Date dataNascimento;
     private String classificacao;
     private String sexo;
     private int idBairro;
     private String nomeBairro;
+    private String nomeBairroOriginal;
     private String evolucao;
     private int idadePaciente;
     private int semanaEpidemiologica;
@@ -29,11 +31,13 @@ public class ManageNotificationResponseDTO {
         this.idNotification = n.getIdNotification();
         this.idAgravo = n.getIdAgravo();
         this.dataNotification = n.getDataNotification();
+        this.dataPrimeiroSintoma = n.getDataPrimeiroSintoma();
         this.dataNascimento = n.getDataNascimento();
         this.classificacao = n.getClassificacao();
         this.sexo = n.getSexo();
         this.idBairro = n.getIdBairro();
         this.nomeBairro = n.getNomeBairro();
+        this.nomeBairroOriginal = n.getNomeBairroOriginal();
         this.evolucao = n.getEvolucao();
         this.idadePaciente = n.getIdadePaciente();
         this.semanaEpidemiologica = n.getSemanaEpidemiologica();

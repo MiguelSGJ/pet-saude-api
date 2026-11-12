@@ -39,6 +39,8 @@ public class Notification {
     private String sexo;
     private int idBairro;
     private String nomeBairro;
+    @jakarta.persistence.Column(length = 120)
+    private String nomeBairroOriginal;
     private String evolucao;  
     private int semanaEpidemiologica;
 

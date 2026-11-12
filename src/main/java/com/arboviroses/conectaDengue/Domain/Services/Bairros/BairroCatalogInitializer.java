@@ -52,7 +52,8 @@ public class BairroCatalogInitializer implements CommandLineRunner {
             new BairroSeedItem("RINCAO", "MOSSORO", List.of("CONJ. VINGT ROSADO", "ALTO DA PELONHA", "ODETE ROSADO", "ALTO DAS BRISAS", "PARQUE UNIVERSITARIO")),
             new BairroSeedItem("SANTO ANTONIO", "MOSSORO", List.of("SANTA HELENA", "WILSON ROSADO", "ESTRADA DA RAIZ", "CONJ. SANDRA ROSADO", "CONJ JOSE AGRIPINO")),
             new BairroSeedItem("SANTA DELMIRA", "MOSSORO", List.of("PARQUE DAS ROSAS", "CONJ NOVA ESPERANCA", "CONJ. ROSILANDIA", "BOA ESPERANCA", "CONJ. RESISTENCIA", "PROMORAR")),
-            new BairroSeedItem("SANTA JULIA", "MOSSORO", List.of("NOVA MOSSORO", "ROYALVILLE"))
+            new BairroSeedItem("SANTA JULIA", "MOSSORO", List.of("NOVA MOSSORO", "ROYALVILLE")),
+            new BairroSeedItem(BairroService.RURAL_NEIGHBORHOOD, "MOSSORO", List.of("AREA RURAL DE MOSSORO"))
         );
     }
 

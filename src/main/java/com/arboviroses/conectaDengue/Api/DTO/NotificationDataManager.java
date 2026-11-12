@@ -10,6 +10,7 @@ public class NotificationDataManager {
             notification.getIdNotification(),
             notification.getIdAgravo(),
             notification.getDataNotification(),
+            notification.getDataPrimeiroSintoma(),
             notification.getDataNascimento(),
             notification.getClassificacao(),
             notification.getSexo(),

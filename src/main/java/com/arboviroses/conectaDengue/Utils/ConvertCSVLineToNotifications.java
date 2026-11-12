@@ -12,8 +12,11 @@ public class ConvertCSVLineToNotifications {
     public static Notification convertCsvLineToNotificationObject(String[] line, List<String> header)
     {   
         Date dataNascimento = StringToDateCSV.ConvertStringToDate(line[header.indexOf("DT_NASC")]);
-        Date dataNotification = extractNotificationDate(line, header);
-        int epidemiologicalWeek = calculateEpidemiologicalWeek(dataNotification);
+        Date dataNotification = extractDate(line, header, "DT_NOTIFIC");
+        Date dataPrimeiroSintoma = extractDate(line, header, "DT_SIN_PRI");
+        if (dataNotification == null) dataNotification = dataPrimeiroSintoma;
+        if (dataPrimeiroSintoma == null) dataPrimeiroSintoma = dataNotification;
+        int epidemiologicalWeek = calculateEpidemiologicalWeek(dataPrimeiroSintoma);
         int idade = extractIdade(header, line);
 
         if (idade == 0) {
@@ -25,7 +28,7 @@ public class ConvertCSVLineToNotifications {
         notification.setIdAgravo(line[header.indexOf("ID_AGRAVO")]);
         notification.setIdadePaciente(idade);
         notification.setDataNotification(dataNotification);
-        notification.setDataPrimeiroSintoma(dataNotification);
+        notification.setDataPrimeiroSintoma(dataPrimeiroSintoma);
         notification.setDataNascimento(dataNascimento);
         notification.setClassificacao(line[header.indexOf("CLASSI_FIN")]);
         notification.setSexo(line[header.indexOf("CS_SEXO")]);
@@ -68,18 +71,9 @@ public class ConvertCSVLineToNotifications {
         return idade;
     }
 
-    private static Date extractNotificationDate(String[] line, List<String> header) {
-        int sinPriIndex = header.indexOf("DT_SIN_PRI");
-        if (sinPriIndex >= 0) {
-            return StringToDateCSV.ConvertStringToDate(line[sinPriIndex]);
-        }
-
-        int notificIndex = header.indexOf("DT_NOTIFIC");
-        if (notificIndex >= 0) {
-            return StringToDateCSV.ConvertStringToDate(line[notificIndex]);
-        }
-
-        return null;
+    private static Date extractDate(String[] line, List<String> header, String column) {
+        int index = header.indexOf(column);
+        return index >= 0 ? StringToDateCSV.ConvertStringToDate(line[index]) : null;
     }
 
     private static int parseIntOrZero(String value) {

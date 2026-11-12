@@ -24,6 +24,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class BairroService {
     private static final String DEFAULT_CITY = "MOSSORO";
+    public static final String RURAL_NEIGHBORHOOD = "ZONA RURAL";
     private final BairroRepository bairroRepository;
 
     // Encontra o bairro pelo nome do sub-bairro
@@ -49,6 +50,21 @@ public class BairroService {
         Optional<Bairro> exactMatch = findBySubBairro(nomeBairroOuSubBairro);
         if (exactMatch.isPresent()) return exactMatch;
         return findClosestNeighborhood(nomeBairroOuSubBairro);
+    }
+
+    /**
+     * Resolve um bairro informado pelo SINAN para o catalogo canonico. Uma
+     * localidade preenchida que nao corresponda a nenhum dos bairros ou
+     * sub-bairros urbanos e classificada como Zona Rural. Valor ausente
+     * continua ausente para que seja tratado como inconsistencia.
+     */
+    public Optional<Bairro> resolveBairroForNotification(String nomeBairroOuSubBairro) {
+        if (normalizeName(nomeBairroOuSubBairro) == null) {
+            return Optional.empty();
+        }
+
+        return resolveBairro(nomeBairroOuSubBairro)
+            .or(() -> bairroRepository.findByNomeAndCidadeIgnoreCase(RURAL_NEIGHBORHOOD, DEFAULT_CITY));
     }
 
     // Normaliza os nomes dos bairros/sub-bairros, esse metodo aplica um algoritmo para encontrar

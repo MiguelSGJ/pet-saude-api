@@ -17,6 +17,9 @@ public class UpdateNotificationDTO {
     @Pattern(regexp = InputPatterns.DATE_BR, message = "Data de notificacao deve estar no formato dd/MM/yyyy")
     private String dtNotific;
 
+    @Pattern(regexp = InputPatterns.DATE_BR, message = "Data dos primeiros sintomas deve estar no formato dd/MM/yyyy")
+    private String dtSinPri;
+
     @Pattern(regexp = InputPatterns.DATE_BR, message = "Data de nascimento deve estar no formato dd/MM/yyyy")
     private String dtNasc;
 

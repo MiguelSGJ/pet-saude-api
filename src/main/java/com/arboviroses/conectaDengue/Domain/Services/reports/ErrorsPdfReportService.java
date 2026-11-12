@@ -88,7 +88,7 @@ public class ErrorsPdfReportService {
             table.setWidthPercentage(100f);
             table.setWidths(new float[]{2f, 2f, 2.5f, 1.5f, 2.5f, 2f, 1.5f, 3f});
 
-            for (String h : new String[]{"Doença", "Data Notif.", "Bairro", "Sexo", "Classificação", "Evolução", "Sem. Epid.", "Problema"}) {
+            for (String h : new String[]{"Doença", "1º sintoma", "Bairro", "Sexo", "Classificação", "Evolução", "Sem. Epid.", "Problema"}) {
                 addHeaderCell(table, h, headerFont);
             }
 
@@ -97,7 +97,7 @@ public class ErrorsPdfReportService {
                     ? DOENCA_LABELS.getOrDefault(r.getIdAgravo(), r.getIdAgravo())
                     : "—";
                 addBodyCell(table, agravo, bodyFont, Element.ALIGN_LEFT);
-                addBodyCell(table, r.getDataNotification() != null ? sdfLabel.format(r.getDataNotification()) : "—", bodyFont, Element.ALIGN_CENTER);
+                addBodyCell(table, r.getDataPrimeiroSintoma() != null ? sdfLabel.format(r.getDataPrimeiroSintoma()) : "—", bodyFont, Element.ALIGN_CENTER);
                 addBodyCell(table, r.getNomeBairro() != null ? r.getNomeBairro() : "—", bodyFont, Element.ALIGN_LEFT);
                 addBodyCell(table, r.getSexo() != null ? r.getSexo() : "—", bodyFont, Element.ALIGN_CENTER);
                 addBodyCell(table, r.getClassificacao() != null ? r.getClassificacao() : "—", bodyFont, Element.ALIGN_LEFT);

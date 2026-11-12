@@ -10,10 +10,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import jakarta.servlet.http.HttpServletRequest;
 
 import com.arboviroses.conectaDengue.Api.DTO.response.NotificationErrorWithCategoryDTO;
+import com.arboviroses.conectaDengue.Api.Exceptions.InvalidAgravoException;
 import com.arboviroses.conectaDengue.Domain.Entities.Notification.Notification;
 import com.arboviroses.conectaDengue.Domain.Entities.Notification.NotificationWithError;
+import com.arboviroses.conectaDengue.Domain.Filters.NotificationFilters;
 import com.arboviroses.conectaDengue.Domain.Repositories.Notifications.NotificationWithErrorRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -61,6 +64,12 @@ public class NotificationsErrorService {
         );
     }
 
+    public long countForDashboard(HttpServletRequest request) throws InvalidAgravoException {
+        return notificationWithErrorRepository.count(
+            NotificationFilters.buildDashboardErrorSpecification(request)
+        );
+    }
+
     public void deleteById(Long id) {
         notificationWithErrorRepository.deleteById(id);
     }
@@ -95,14 +104,14 @@ public class NotificationsErrorService {
         return notificationWithErrorRepository.findAllWithMaxIteration().stream()
             .map(n -> new NotificationErrorWithCategoryDTO(n, categorizeError(n)))
             .filter(n -> category == null || category.isBlank() || category.equals(n.getCategory()))
-            .filter(n -> startDate == null || (n.getDataNotification() != null && n.getDataNotification().getTime() >= startDate))
-            .filter(n -> endDate == null || (n.getDataNotification() != null && n.getDataNotification().getTime() <= endDate))
+            .filter(n -> startDate == null || (n.getDataPrimeiroSintoma() != null && n.getDataPrimeiroSintoma().getTime() >= startDate))
+            .filter(n -> endDate == null || (n.getDataPrimeiroSintoma() != null && n.getDataPrimeiroSintoma().getTime() <= endDate))
             .filter(n -> idAgravo == null || idAgravo.isBlank() || idAgravo.equals(n.getIdAgravo()))
             .sorted((a, b) -> {
-                if (a.getDataNotification() == null && b.getDataNotification() == null) return 0;
-                if (a.getDataNotification() == null) return 1;
-                if (b.getDataNotification() == null) return -1;
-                return b.getDataNotification().compareTo(a.getDataNotification());
+                if (a.getDataPrimeiroSintoma() == null && b.getDataPrimeiroSintoma() == null) return 0;
+                if (a.getDataPrimeiroSintoma() == null) return 1;
+                if (b.getDataPrimeiroSintoma() == null) return -1;
+                return b.getDataPrimeiroSintoma().compareTo(a.getDataPrimeiroSintoma());
             })
             .collect(Collectors.toList());
     }
@@ -113,8 +122,8 @@ public class NotificationsErrorService {
         List<NotificationErrorWithCategoryDTO> categorized = all.stream()
             .map(n -> new NotificationErrorWithCategoryDTO(n, categorizeError(n)))
             .filter(n -> category == null || category.isBlank() || category.equals(n.getCategory()))
-            .filter(n -> startDate == null || (n.getDataNotification() != null && n.getDataNotification().getTime() >= startDate))
-            .filter(n -> endDate == null || (n.getDataNotification() != null && n.getDataNotification().getTime() <= endDate))
+            .filter(n -> startDate == null || (n.getDataPrimeiroSintoma() != null && n.getDataPrimeiroSintoma().getTime() >= startDate))
+            .filter(n -> endDate == null || (n.getDataPrimeiroSintoma() != null && n.getDataPrimeiroSintoma().getTime() <= endDate))
             .filter(n -> idAgravo == null || idAgravo.isBlank() || idAgravo.equals(n.getIdAgravo()))
             .collect(Collectors.toList());
 
