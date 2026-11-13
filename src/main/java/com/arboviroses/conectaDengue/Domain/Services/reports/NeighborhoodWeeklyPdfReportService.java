@@ -168,6 +168,7 @@ public class NeighborhoodWeeklyPdfReportService {
             PdfPTable table = new PdfPTable(numSemanas + 2);
             table.setWidthPercentage(100f);
             table.setWidths(buildColumnWidths(numSemanas));
+            table.setHeaderRows(1);
 
             addHeaderCell(table, "Bairro", headerFont);
             for (int semana = semanaInicial; semana <= semanaFinal; semana++) {
@@ -244,7 +245,7 @@ public class NeighborhoodWeeklyPdfReportService {
         PdfPCell cell = new PdfPCell(new Phrase(value, font));
         cell.setHorizontalAlignment(alignment);
         cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        cell.setNoWrap(true);
+        cell.setNoWrap(false);
         cell.setPadding(4f);
         table.addCell(cell);
     }

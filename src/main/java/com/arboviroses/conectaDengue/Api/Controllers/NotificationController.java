@@ -214,9 +214,13 @@ public class NotificationController
         @RequestParam(required = false) @Size(max = 30) @Pattern(regexp = InputPatterns.AGRAVO) String idAgravo
     ) {
         byte[] pdf = errorsPdfReportService.generateReport(category, startDate, endDate, idAgravo);
-        String filename = (category != null && !category.isBlank())
+        boolean hasFilters = (category != null && !category.isBlank())
+            || startDate != null
+            || endDate != null
+            || (idAgravo != null && !idAgravo.isBlank());
+        String filename = category != null && !category.isBlank()
             ? "erros-" + category.toLowerCase() + ".pdf"
-            : "erros-todos.pdf";
+            : hasFilters ? "erros-filtrados.pdf" : "erros-todos.pdf";
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
             .contentType(MediaType.APPLICATION_PDF)
