@@ -6,6 +6,8 @@ import com.arboviroses.conectaDengue.Domain.Repositories.Notifications.Notificat
 import com.arboviroses.conectaDengue.Domain.Services.Notifications.NotificationsErrorService;
 import java.util.Date;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,6 +47,33 @@ class NotificationsErrorServiceTest {
             .singleElement()
             .extracting(NotificationErrorWithCategoryDTO::getCategory)
             .isEqualTo("SEXO_NAO_INFORMADO");
+    }
+
+    @Test
+    void shouldUseTheSameCombinedFiltersForTableAndPdf() {
+        NotificationWithErrorRepository repository = mock(NotificationWithErrorRepository.class);
+        NotificationWithError matching = completeError(new Date(500L), new Date(2_500L));
+        matching.setSexo(null);
+        NotificationWithError wrongDisease = completeError(new Date(500L), new Date(2_500L));
+        wrongDisease.setSexo(null);
+        wrongDisease.setIdAgravo("A928");
+        NotificationWithError outsidePeriod = completeError(new Date(500L), new Date(4_000L));
+        outsidePeriod.setSexo(null);
+        when(repository.findAllWithMaxIteration()).thenReturn(List.of(matching, wrongDisease, outsidePeriod));
+
+        NotificationsErrorService service = new NotificationsErrorService(repository);
+        List<NotificationErrorWithCategoryDTO> pdfRecords = service.getAllErrorsFiltered(
+            "SEXO_NAO_INFORMADO", 2_000L, 3_000L, "A90"
+        );
+        Page<NotificationErrorWithCategoryDTO> tableRecords = service.getAllErrorsPaginated(
+            PageRequest.of(0, 20), "SEXO_NAO_INFORMADO", 2_000L, 3_000L, "A90"
+        );
+
+        assertThat(pdfRecords).extracting(NotificationErrorWithCategoryDTO::getIdNotification)
+            .containsExactly(matching.getIdNotification());
+        assertThat(tableRecords.getContent())
+            .extracting(NotificationErrorWithCategoryDTO::getIdNotification)
+            .containsExactly(matching.getIdNotification());
     }
 
     private NotificationWithError completeError(Date notificationDate, Date symptomsDate) {

@@ -117,15 +117,8 @@ public class NotificationsErrorService {
     }
 
     public Page<NotificationErrorWithCategoryDTO> getAllErrorsPaginated(Pageable pageable, String category, Long startDate, Long endDate, String idAgravo) {
-        List<NotificationWithError> all = notificationWithErrorRepository.findAllWithMaxIteration();
-
-        List<NotificationErrorWithCategoryDTO> categorized = all.stream()
-            .map(n -> new NotificationErrorWithCategoryDTO(n, categorizeError(n)))
-            .filter(n -> category == null || category.isBlank() || category.equals(n.getCategory()))
-            .filter(n -> startDate == null || (n.getDataPrimeiroSintoma() != null && n.getDataPrimeiroSintoma().getTime() >= startDate))
-            .filter(n -> endDate == null || (n.getDataPrimeiroSintoma() != null && n.getDataPrimeiroSintoma().getTime() <= endDate))
-            .filter(n -> idAgravo == null || idAgravo.isBlank() || idAgravo.equals(n.getIdAgravo()))
-            .collect(Collectors.toList());
+        List<NotificationErrorWithCategoryDTO> categorized =
+            getAllErrorsFiltered(category, startDate, endDate, idAgravo);
 
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), categorized.size());
